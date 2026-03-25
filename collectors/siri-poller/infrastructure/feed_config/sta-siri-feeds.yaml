@@ -5,7 +5,7 @@
 feeds:
   - endpoint: "https://efa.sta.bz.it/siri-lite/vehicle-monitoring"
     provider: "siri-poller/sta-siri-vehicle-monitoring"
-    cron: "0/20 * * * * *"
+    cron: "0/30 * * * * *"
     format: "json"
     metadata:
       agency: "sta"
@@ -15,7 +15,7 @@ feeds:
 
   - endpoint: "https://efa.sta.bz.it/siri-lite/estimated-timetable"
     provider: "siri-poller/sta-siri-estimated-timetable"
-    cron: "0/20 * * * * *"
+    cron: "0/30 * * * * *"
     format: "json"
     metadata:
       agency: "sta"
@@ -25,7 +25,7 @@ feeds:
 
   - endpoint: "https://efa.sta.bz.it/siri-lite/situation-exchange"
     provider: "siri-poller/sta-siri-situation-exchange"
-    cron: "0/20 * * * * *"
+    cron: "0/30 * * * * *"
     format: "json"
     metadata:
       agency: "sta"
