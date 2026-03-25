@@ -9,7 +9,7 @@ on:
     paths:
       - "collectors/siri-poller/**"
       - "!collectors/siri-poller/infrastructure/helm/*"
-      - "collectors/siri-poller/infrastructure/helm/sta-siri-feeds.yaml"
+      - "collectors/siri-poller/infrastructure/helm/siri-feeds.yaml"
       - "collectors/siri-poller/infrastructure/feed_config/sta-siri-feeds.yaml"
       - ".github/workflows/dc-sta-siri-poller.yml"
 
@@ -19,7 +19,7 @@ env:
   DOCKER_IMAGE: ghcr.io/noi-techpark/opendatahub-public-transport/dc-sta-siri-poller
   DOCKER_TAG: ${{ github.sha }}
   KUBERNETES_NAMESPACE: pt
-  VALUES_YAML: infrastructure/helm/siri-sta-feeds.yaml
+  VALUES_YAML: infrastructure/helm/siri-feeds.yaml
   K8S_NAME: dc-sta-siri-poller
 
 jobs:
