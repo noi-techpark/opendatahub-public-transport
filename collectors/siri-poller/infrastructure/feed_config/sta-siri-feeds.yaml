@@ -1,0 +1,34 @@
+# SPDX-FileCopyrightText: 2024 NOI Techpark <digital@noi.bz.it>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+feeds:
+  - endpoint: "https://efa.sta.bz.it/siri-lite/vehicle-monitoring"
+    provider: "siri-poller/sta-siri-vehicle-monitoring"
+    cron: "0/20 * * * * *"
+    format: "json"
+    metadata:
+      agency: "sta"
+      feed_type: "vehicle-monitoring"
+    headers:
+      Accept: "application/json"
+
+  - endpoint: "https://efa.sta.bz.it/siri-lite/estimated-timetable"
+    provider: "siri-poller/sta-siri-estimated-timetable"
+    cron: "0/20 * * * * *"
+    format: "json"
+    metadata:
+      agency: "sta"
+      feed_type: "estimated-timetable"
+    headers:
+      Accept: "application/json"
+
+  - endpoint: "https://efa.sta.bz.it/siri-lite/situation-exchange"
+    provider: "siri-poller/sta-siri-situation-exchange"
+    cron: "0/20 * * * * *"
+    format: "json"
+    metadata:
+      agency: "sta"
+      feed_type: "situation-exchange"
+    headers:
+      Accept: "application/json"
