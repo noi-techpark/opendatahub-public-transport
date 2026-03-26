@@ -10,7 +10,7 @@ env:
   MQ_KEY: pt-feed.sta-siri-lite-vehicle-monitoring
 
   FILESERVER_HOST: "http://files-nginx-internal.core.svc.cluster.local"
-  FILESERVER_PATH: "/gtfs-rt-json/feeds/sta/vehicle-positions"
+  FILESERVER_PATH: "/gtfs-rt/feeds/sta/vehicle-positions"
   NETEX_FTP_URL: "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__20260326.xml.zip"
   GTFS_FTP_URL: "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
   REFRESH_HOURS: "24"
