@@ -9,11 +9,36 @@ import (
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
 )
 
+// deduplicateByVehicle keeps only the most recent VehicleActivity per VehicleRef.
+// When a bus transitions between trips, the feed may contain both the old and new entry.
+func deduplicateByVehicle(activities []siri.VehicleActivity) []siri.VehicleActivity {
+	best := make(map[string]siri.VehicleActivity, len(activities))
+	for _, va := range activities {
+		ref := va.MonitoredVehicleJourney.VehicleRef
+		if existing, ok := best[ref]; ok {
+			// Keep the one with the later RecordedAtTime
+			if va.RecordedAtTime > existing.RecordedAtTime {
+				best[ref] = va
+			}
+		} else {
+			best[ref] = va
+		}
+	}
+	result := make([]siri.VehicleActivity, 0, len(best))
+	for _, va := range best {
+		result = append(result, va)
+	}
+	return result
+}
+
 // ConvertVM converts a SIRI VM feed to a GTFS-RT VehiclePositions feed.
 func ConvertVM(feed *siri.VMFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 	fm := gtfsrt.NewFeedMessage()
 
-	activities := feed.ServiceDelivery.VehicleMonitoringDelivery.VehicleActivity
+	// Deduplicate: keep only the most recent entry per VehicleRef.
+	// The feed can contain stale entries from a previous trip alongside the current one
+	// (e.g., bus transitioning between trips).
+	activities := deduplicateByVehicle(feed.ServiceDelivery.VehicleMonitoringDelivery.VehicleActivity)
 
 	for _, va := range activities {
 		mvj := va.MonitoredVehicleJourney

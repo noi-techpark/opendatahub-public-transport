@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/noi-techpark/opendatahub-go-sdk/ingest/ms"
 	"github.com/noi-techpark/opendatahub-go-sdk/ingest/rdb"
@@ -76,6 +77,9 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 	// Convert using static data
 	resolver := staticData.GetResolver()
 	rt := ConvertVM(vm, resolver)
+
+	// Set header timestamp right before serialization to minimize staleness
+	rt.Header.Timestamp = time.Now().Unix()
 
 	// PUT protobuf
 	pbData, err := rt.Serialize(gtfsrt.FormatProtobuf)

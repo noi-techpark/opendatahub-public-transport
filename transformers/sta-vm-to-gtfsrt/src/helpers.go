@@ -53,12 +53,14 @@ func stripNeTExStopPrefix(ref string) string {
 }
 
 // mapDirectionRef maps SIRI DirectionRef (1/2) to GTFS direction_id (0/1).
+// STA convention: SIRI 1 = Rückfahrt (return) = GTFS direction_id 1
+//                 SIRI 2 = Hinfahrt (outbound) = GTFS direction_id 0
 func mapDirectionRef(dirRef string) int {
 	switch dirRef {
 	case "1":
-		return 0
-	case "2":
 		return 1
+	case "2":
+		return 0
 	default:
 		v, _ := strconv.Atoi(dirRef)
 		if v > 0 {
