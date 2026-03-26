@@ -4,9 +4,7 @@ image:
   tag: "0.1.0"
 
 env:
-  MQ_CLIENT: dc-feed-fetcher
   CONFIG_PATH: "/config/feed-config.yaml"
-  SERVICE_NAME: dc-feed-fetcher
   TELEMETRY_TRACE_GRPC_ENDPOINT: tempo-distributor-discovery.monitoring.svc.cluster.local:4317
 
 envSecretRef:

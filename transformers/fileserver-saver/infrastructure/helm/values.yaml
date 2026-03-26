@@ -1,0 +1,21 @@
+image:
+  repository: ghcr.io/noi-techpark/opendatahub-public-transport/tr-fileserver-saver
+  pullPolicy: IfNotPresent
+  tag: "0.1.0"
+
+env:
+  MQ_CLIENT:
+  SERVICE_NAME:
+  CONFIG_PATH: "/config/sink-config.yaml"
+  FILESERVER_HOST: "http://files-nginx-internal.core.svc.cluster.local"
+  RAW_DATA_BRIDGE_ENDPOINT: "http://raw-data-bridge.core.svc.cluster.local:2000"
+  TELEMETRY_TRACE_GRPC_ENDPOINT: tempo-distributor-discovery.monitoring.svc.cluster.local:4317
+
+envSecretRef:
+  - name: MQ_URI
+    secret: rabbitmq-svcbind
+    key: uri
+
+configMap:
+  mountPath: "/config/"
+  files: {}

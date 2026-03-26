@@ -1,0 +1,19 @@
+# SPDX-FileCopyrightText: 2024 NOI Techpark <digital@noi.bz.it>
+#
+# SPDX-License-Identifier: CC0-1.0
+
+sinks:
+  - mq_queue: "pt-feed.sta-siri-lite-vehicle-monitoring"
+    mq_exchange: "routed"
+    mq_key: "pt-feed.sta-siri-lite-vehicle-monitoring"
+    fileserver_path: "/siri-lite/vehicle-monitoring/busses/sta.json"
+
+  - mq_queue: "pt-feed.sta-siri-lite-estimated-timetable"
+    mq_exchange: "routed"
+    mq_key: "pt-feed.sta-siri-lite-estimated-timetable"
+    fileserver_path: "/siri-lite/estimated-timetable/busses/sta.json"
+
+  - mq_queue: "pt-feed.sta-siri-lite-situation-exchange"
+    mq_exchange: "routed"
+    mq_key: "pt-feed.sta-siri-lite-situation-exchange"
+    fileserver_path: "/siri-lite/situation-exchange/busses/sta.json"

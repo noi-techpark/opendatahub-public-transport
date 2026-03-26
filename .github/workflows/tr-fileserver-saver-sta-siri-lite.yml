@@ -2,30 +2,30 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-name: CI/CD dc-sta-siri-lite
+name: CI/CD tr-fileserver-saver sta-siri-lite
 
 on:
   push:
     paths:
-      - "collectors/feed-fetcher/**"
-      - "!collectors/feed-fetcher/infrastructure/helm/*"
-      - "collectors/feed-fetcher/infrastructure/helm/values.yaml"
-      - "collectors/feed-fetcher/infrastructure/feed_config/sta-siri-feeds.yaml"
-      - ".github/workflows/dc-sta-siri-lite.yml"
+      - "transformers/fileserver-saver/**"
+      - "!transformers/fileserver-saver/infrastructure/helm/*"
+      - "transformers/fileserver-saver/infrastructure/helm/values.yaml"
+      - "transformers/fileserver-saver/infrastructure/sink_config/sta-siri-lite.yaml"
+      - ".github/workflows/tr-fileserver-saver-sta-siri-lite.yml"
 
 env:
-  WORKING_DIRECTORY: collectors/feed-fetcher
-  FEED_CONFIG_PATH: infrastructure/feed_config/sta-siri-feeds.yaml
-  DOCKER_IMAGE: ghcr.io/noi-techpark/opendatahub-public-transport/dc-feed-fetcher
+  WORKING_DIRECTORY: transformers/fileserver-saver
+  SINK_CONFIG_PATH: infrastructure/sink_config/sta-siri-lite.yaml
+  DOCKER_IMAGE: ghcr.io/noi-techpark/opendatahub-public-transport/tr-fileserver-saver
   DOCKER_TAG: ${{ github.sha }}
   KUBERNETES_NAMESPACE: pt
   VALUES_YAML: infrastructure/helm/values.yaml
-  K8S_NAME: dc-sta-siri-lite
+  K8S_NAME: tr-fileserver-saver-sta-siri-lite
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-    concurrency: dc-sta-siri-lite-build
+    concurrency: tr-fileserver-saver-sta-siri-lite-build
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
-    concurrency: dc-sta-siri-lite-test
+    concurrency: tr-fileserver-saver-sta-siri-lite-test
     environment: test
     steps:
       - name: Checkout source code
@@ -53,9 +53,9 @@ jobs:
           yq -i '.image.repository="${{ env.DOCKER_IMAGE }}"' ${{ env.VALUES_YAML }}
           yq -i '.image.tag="${{ env.DOCKER_TAG }}"' ${{ env.VALUES_YAML }}
           yq -i '.image.pullPolicy="IfNotPresent"' ${{ env.VALUES_YAML }}
-          yq -i '.env.MQ_CLIENT="dc-sta-siri-lite"' ${{ env.VALUES_YAML }}
-          yq -i '.env.SERVICE_NAME="dc-sta-siri-lite"' ${{ env.VALUES_YAML }}
-          yq -i '.configMap.files["feed-config.yaml"] = load_str("${{ env.FEED_CONFIG_PATH }}")' ${{ env.VALUES_YAML }}
+          yq -i '.env.MQ_CLIENT="${{ env.K8S_NAME }}"' ${{ env.VALUES_YAML }}
+          yq -i '.env.SERVICE_NAME="${{ env.K8S_NAME }}"' ${{ env.VALUES_YAML }}
+          yq -i '.configMap.files["sink-config.yaml"] = load_str("${{ env.SINK_CONFIG_PATH }}")' ${{ env.VALUES_YAML }}
 
       - name: Deploy on cluster
         uses: noi-techpark/github-actions/helm-deploy@v2
