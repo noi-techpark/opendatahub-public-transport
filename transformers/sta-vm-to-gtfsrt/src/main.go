@@ -16,7 +16,6 @@ import (
 	"github.com/noi-techpark/opendatahub-go-sdk/ingest/tr"
 	"github.com/noi-techpark/opendatahub-go-sdk/tel"
 	"github.com/noi-techpark/opendatahub-go-sdk/tel/logger"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
@@ -72,11 +71,7 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 
 	// Deserialize SIRI VM
 	vm, err := siri.DeserializeVM([]byte(raw.Rawdata.Payload), siri.FormatJSON)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to deserialize SIRI VM")
-		return fmt.Errorf("deserialize VM: %w", err)
-	}
+	ms.FailOnError(ctx, err, "failed to deserialize SIRI VM")
 
 	// Convert using static data
 	resolver := staticData.GetResolver()
@@ -84,31 +79,16 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 
 	// PUT protobuf
 	pbData, err := rt.Serialize(gtfsrt.FormatProtobuf)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to serialize protobuf")
-		return fmt.Errorf("serialize protobuf: %w", err)
-	}
-	if err := putFile(ctx, env.FILESERVER_HOST, env.FILESERVER_PATH+".pb", pbData); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to PUT protobuf")
-		return fmt.Errorf("put protobuf: %w", err)
-	}
+	ms.FailOnError(ctx, err, "failed to serialize protobuf")
+
+	err = putFile(ctx, env.FILESERVER_HOST, env.FILESERVER_PATH+".pb", pbData)
+	ms.FailOnError(ctx, err, "failed to PUT protobuf")
 
 	// PUT JSON
 	jsonData, err := rt.Serialize(gtfsrt.FormatJSON)
-	if err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to serialize JSON")
-		return fmt.Errorf("serialize json: %w", err)
-	}
-	if err := putFile(ctx, env.FILESERVER_HOST, env.FILESERVER_PATH+".json", jsonData); err != nil {
-		span.RecordError(err)
-		span.SetStatus(codes.Error, "failed to PUT JSON")
-		return fmt.Errorf("put json: %w", err)
-	}
+	ms.FailOnError(ctx, err, "failed to serialize JSON")
+	err = putFile(ctx, env.FILESERVER_HOST, env.FILESERVER_PATH+".json", jsonData)
 
-	span.SetStatus(codes.Ok, "")
 	log.Info("Transform completed",
 		"entities", len(rt.Entity),
 		"resolver_trips_a", resolver.TripsResolvedA,
