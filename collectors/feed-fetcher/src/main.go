@@ -30,7 +30,7 @@ var env struct {
 
 func main() {
 	ms.InitWithEnv(context.Background(), "", &env)
-	slog.Info("Starting SIRI feed poller...")
+	slog.Info("Starting feed fetcher...")
 
 	defer tel.FlushOnPanic()
 
@@ -171,6 +171,7 @@ func pollFeed(ctx context.Context, feed FeedConfig, collector *dc.Dc[dc.EmptyDat
 		Timestamp: time.Now(),
 		Rawdata: SiriPayload{
 			Format:   feed.Format,
+			Protocol: feed.Protocol,
 			Metadata: feed.Metadata,
 			Payload:  string(body),
 		},

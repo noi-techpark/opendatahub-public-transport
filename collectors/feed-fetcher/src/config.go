@@ -16,6 +16,7 @@ type FeedConfig struct {
 	Provider string            `yaml:"provider"`
 	Cron     string            `yaml:"cron"`
 	Format   string            `yaml:"format"`
+	Protocol string            `yaml:"protocol"`
 	Metadata map[string]string `yaml:"metadata,omitempty"`
 	Headers  map[string]string `yaml:"headers,omitempty"`
 }
@@ -26,6 +27,7 @@ type Config struct {
 
 type SiriPayload struct {
 	Format   string            `json:"format"`
+	Protocol string            `json:"protocol"`
 	Metadata map[string]string `json:"metadata,omitempty"`
 	Payload  string            `json:"payload"`
 }
@@ -54,6 +56,9 @@ func LoadConfig(path string) (*Config, error) {
 		}
 		if f.Format == "" {
 			return nil, fmt.Errorf("feed %d: format is required", i)
+		}
+		if f.Protocol == "" {
+			return nil, fmt.Errorf("feed %d: protocol is required", i)
 		}
 	}
 	return &cfg, nil

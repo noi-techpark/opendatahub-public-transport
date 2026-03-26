@@ -1,4 +1,4 @@
-module opendatahub.com/siri-poller
+module opendatahub.com/feed-fetcher
 
 go 1.25.5
 

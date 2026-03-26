@@ -2,30 +2,30 @@
 #
 # SPDX-License-Identifier: CC0-1.0
 
-name: CI/CD dc-sta-siri-poller
+name: CI/CD dc-sta-siri-lite
 
 on:
   push:
     paths:
-      - "collectors/siri-poller/**"
-      - "!collectors/siri-poller/infrastructure/helm/*"
-      - "collectors/siri-poller/infrastructure/helm/siri-feeds.yaml"
-      - "collectors/siri-poller/infrastructure/feed_config/sta-siri-feeds.yaml"
-      - ".github/workflows/dc-sta-siri-poller.yml"
+      - "collectors/feed-fetcher/**"
+      - "!collectors/feed-fetcher/infrastructure/helm/*"
+      - "collectors/feed-fetcher/infrastructure/helm/siri-feeds.yaml"
+      - "collectors/feed-fetcher/infrastructure/feed_config/sta-siri-feeds.yaml"
+      - ".github/workflows/dc-sta-siri-lite.yml"
 
 env:
-  WORKING_DIRECTORY: collectors/siri-poller
+  WORKING_DIRECTORY: collectors/feed-fetcher
   FEED_CONFIG_PATH: infrastructure/feed_config/sta-siri-feeds.yaml
-  DOCKER_IMAGE: ghcr.io/noi-techpark/opendatahub-public-transport/dc-sta-siri-poller
+  DOCKER_IMAGE: ghcr.io/noi-techpark/opendatahub-public-transport/dc-feed-fetcher
   DOCKER_TAG: ${{ github.sha }}
   KUBERNETES_NAMESPACE: pt
   VALUES_YAML: infrastructure/helm/siri-feeds.yaml
-  K8S_NAME: dc-sta-siri-poller
+  K8S_NAME: dc-sta-siri-lite
 
 jobs:
   build:
     runs-on: ubuntu-24.04
-    concurrency: dc-sta-siri-poller-build
+    concurrency: dc-sta-siri-lite-build
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
@@ -41,7 +41,7 @@ jobs:
     if: github.ref == 'refs/heads/main'
     needs: build
     runs-on: ubuntu-24.04
-    concurrency: dc-sta-siri-poller-test
+    concurrency: dc-sta-siri-lite-test
     environment: test
     steps:
       - name: Checkout source code
@@ -53,8 +53,8 @@ jobs:
           yq -i '.image.repository="${{ env.DOCKER_IMAGE }}"' ${{ env.VALUES_YAML }}
           yq -i '.image.tag="${{ env.DOCKER_TAG }}"' ${{ env.VALUES_YAML }}
           yq -i '.image.pullPolicy="IfNotPresent"' ${{ env.VALUES_YAML }}
-          yq -i '.env.MQ_CLIENT="dc-sta-siri-poller"' ${{ env.VALUES_YAML }}
-          yq -i '.env.SERVICE_NAME="dc-sta-siri-poller"' ${{ env.VALUES_YAML }}
+          yq -i '.env.MQ_CLIENT="dc-sta-siri-lite"' ${{ env.VALUES_YAML }}
+          yq -i '.env.SERVICE_NAME="dc-sta-siri-lite"' ${{ env.VALUES_YAML }}
           yq -i '.configMap.files["feed-config.yaml"] = load_str("${{ env.FEED_CONFIG_PATH }}")' ${{ env.VALUES_YAML }}
 
       - name: Deploy on cluster

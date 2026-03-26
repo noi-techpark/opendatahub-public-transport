@@ -1,12 +1,12 @@
 image:
-  repository: ghcr.io/noi-techpark/opendatahub-public-transport/dc-siri-poller
+  repository: ghcr.io/noi-techpark/opendatahub-public-transport/dc-feed-fetcher
   pullPolicy: IfNotPresent
   tag: "0.1.0"
 
 env:
-  MQ_CLIENT: dc-siri-poller
+  MQ_CLIENT: dc-feed-fetcher
   CONFIG_PATH: "/config/feed-config.yaml"
-  SERVICE_NAME: dc-siri-poller
+  SERVICE_NAME: dc-feed-fetcher
   TELEMETRY_TRACE_GRPC_ENDPOINT: tempo-distributor-discovery.monitoring.svc.cluster.local:4317
 
 envSecretRef:

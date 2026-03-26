@@ -7,6 +7,7 @@ feeds:
     provider: "siri-poller/sta-siri-vehicle-monitoring"
     cron: "0/30 * * * * *"
     format: "json"
+    protocol: "siri-lite"
     metadata:
       agency: "sta"
       feed_type: "vehicle-monitoring"
@@ -17,6 +18,7 @@ feeds:
     provider: "siri-poller/sta-siri-estimated-timetable"
     cron: "0/30 * * * * *"
     format: "json"
+    protocol: "siri-lite"
     metadata:
       agency: "sta"
       feed_type: "estimated-timetable"
@@ -27,6 +29,7 @@ feeds:
     provider: "siri-poller/sta-siri-situation-exchange"
     cron: "0/30 * * * * *"
     format: "json"
+    protocol: "siri-lite"
     metadata:
       agency: "sta"
       feed_type: "situation-exchange"
