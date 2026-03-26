@@ -3,17 +3,17 @@
 # SPDX-License-Identifier: CC0-1.0
 
 sinks:
-  - mq_queue: "pt-feed.sta-siri-lite-vehicle-monitoring"
+  - mq_queue: "tr-fileserver-saver.sta-siri-lite-vehicle-monitoring"
     mq_exchange: "routed"
     mq_key: "pt-feed.sta-siri-lite-vehicle-monitoring"
     fileserver_path: "/siri-lite/vehicle-monitoring/busses/sta.json"
 
-  - mq_queue: "pt-feed.sta-siri-lite-estimated-timetable"
+  - mq_queue: "tr-fileserver-saver.sta-siri-lite-estimated-timetable"
     mq_exchange: "routed"
     mq_key: "pt-feed.sta-siri-lite-estimated-timetable"
     fileserver_path: "/siri-lite/estimated-timetable/busses/sta.json"
 
-  - mq_queue: "pt-feed.sta-siri-lite-situation-exchange"
+  - mq_queue: "tr-fileserver-saver.sta-siri-lite-situation-exchange"
     mq_exchange: "routed"
     mq_key: "pt-feed.sta-siri-lite-situation-exchange"
     fileserver_path: "/siri-lite/situation-exchange/busses/sta.json"

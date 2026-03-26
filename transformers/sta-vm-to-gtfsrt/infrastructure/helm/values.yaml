@@ -5,7 +5,7 @@ image:
 
 env:
   LOG_LEVEL: "INFO"
-  MQ_QUEUE: pt-feed.sta-siri-lite-vehicle-monitoring
+  MQ_QUEUE: tr-sta-vm-to-gtfsrt.sta-siri-lite-vehicle-monitoring
   MQ_EXCHANGE: routed
   MQ_KEY: pt-feed.sta-siri-lite-vehicle-monitoring
 
