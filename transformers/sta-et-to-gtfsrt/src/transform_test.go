@@ -99,10 +99,10 @@ func TestETTransformPipeline(t *testing.T) {
 
 		// Delay plausibility
 		for _, stu := range tu.StopTimeUpdate {
-			if stu.Arrival != nil && math.Abs(float64(stu.Arrival.Delay)) > 3600 {
+			if stu.Arrival != nil && stu.Arrival.Delay != nil && math.Abs(float64(*stu.Arrival.Delay)) > 3600 {
 				timeImplausible++
 			}
-			if stu.Departure != nil && math.Abs(float64(stu.Departure.Delay)) > 3600 {
+			if stu.Departure != nil && stu.Departure.Delay != nil && math.Abs(float64(*stu.Departure.Delay)) > 3600 {
 				timeImplausible++
 			}
 		}

@@ -144,7 +144,7 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 				expected, err2 := parseISO8601Time(call.ExpectedArrivalTime)
 				if err1 == nil && err2 == nil {
 					stu.Arrival = &gtfsrt.StopTimeEvent{
-						Delay: int32(expected.Unix() - aimed.Unix()),
+						Delay: gtfsrt.Int32Ptr(int32(expected.Unix() - aimed.Unix())),
 					}
 				}
 			}
@@ -154,7 +154,7 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 				expected, err2 := parseISO8601Time(call.ExpectedDepartureTime)
 				if err1 == nil && err2 == nil {
 					stu.Departure = &gtfsrt.StopTimeEvent{
-						Delay: int32(expected.Unix() - aimed.Unix()),
+						Delay: gtfsrt.Int32Ptr(int32(expected.Unix() - aimed.Unix())),
 					}
 				}
 			}
@@ -321,20 +321,21 @@ func resolveETStopRef(ref string, resolver *Resolver) string {
 }
 
 // timesNonDecreasing checks that arrival/departure times never go backwards.
+// Works with both absolute times and delay-only events.
 func timesNonDecreasing(stus []gtfsrt.StopTimeUpdate) bool {
 	var prevTime int64
 	for _, stu := range stus {
-		if stu.Arrival != nil && stu.Arrival.Time > 0 {
-			if prevTime > 0 && stu.Arrival.Time < prevTime {
+		if stu.Arrival != nil && stu.Arrival.Time != nil && *stu.Arrival.Time > 0 {
+			if prevTime > 0 && *stu.Arrival.Time < prevTime {
 				return false
 			}
-			prevTime = stu.Arrival.Time
+			prevTime = *stu.Arrival.Time
 		}
-		if stu.Departure != nil && stu.Departure.Time > 0 {
-			if prevTime > 0 && stu.Departure.Time < prevTime {
+		if stu.Departure != nil && stu.Departure.Time != nil && *stu.Departure.Time > 0 {
+			if prevTime > 0 && *stu.Departure.Time < prevTime {
 				return false
 			}
-			prevTime = stu.Departure.Time
+			prevTime = *stu.Departure.Time
 		}
 	}
 	return true
