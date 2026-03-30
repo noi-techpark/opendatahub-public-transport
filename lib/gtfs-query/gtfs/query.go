@@ -43,19 +43,19 @@ func (f *Feed) FindRoutes(match func(*Route) bool) []*Route {
 }
 
 // FindStopTimes returns all stop_times matching a predicate.
-func (f *Feed) FindStopTimes(match func(*StopTime) bool) []StopTime {
+func (f *Feed) FindStopTimes(match func(*StopTime) bool) []*StopTime {
 	stopTimes := f.store.AllStopTimes()
-	var result []StopTime
+	var result []*StopTime
 	for i := range stopTimes {
 		if match(&stopTimes[i]) {
-			result = append(result, stopTimes[i])
+			result = append(result, &stopTimes[i])
 		}
 	}
 	return result
 }
 
 // FindTripsWhere returns trips matching compound criteria.
-func (f *Feed) FindTripsWhere(match func(trip *Trip, stopTimes []StopTime) bool) []*Trip {
+func (f *Feed) FindTripsWhere(match func(trip *Trip, stopTimes []*StopTime) bool) []*Trip {
 	trips := f.store.AllTrips()
 	var result []*Trip
 	for i := range trips {
@@ -69,7 +69,7 @@ func (f *Feed) FindTripsWhere(match func(trip *Trip, stopTimes []StopTime) bool)
 }
 
 // MatchTrip finds the best-matching trip using a scoring function.
-func (f *Feed) MatchTrip(score func(*Trip, []StopTime) float64) *Trip {
+func (f *Feed) MatchTrip(score func(*Trip, []*StopTime) float64) *Trip {
 	trips := f.store.AllTrips()
 	var best *Trip
 	var bestScore float64
@@ -102,7 +102,7 @@ func (f *Feed) MatchStop(score func(*Stop) float64) *Stop {
 }
 
 // MatchTripIn finds the best-matching trip from a pre-filtered candidate set.
-func (f *Feed) MatchTripIn(candidates []*Trip, score func(*Trip, []StopTime) float64) *Trip {
+func (f *Feed) MatchTripIn(candidates []*Trip, score func(*Trip, []*StopTime) float64) *Trip {
 	var best *Trip
 	var bestScore float64
 	for _, t := range candidates {

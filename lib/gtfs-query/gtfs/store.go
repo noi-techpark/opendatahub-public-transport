@@ -28,13 +28,13 @@ type Store interface {
 	StopsByName(name string) []*Stop
 
 	// --- Relational traversals ---
-	StopTimesForTrip(tripID string) []StopTime
-	StopTimesAtStop(stopID string) []StopTime
+	StopTimesForTrip(tripID string) []*StopTime
+	StopTimesAtStop(stopID string) []*StopTime
 	TripsForRoute(routeID string) []*Trip
 	TripsForService(serviceID string) []*Trip
 	ChildStops(parentID string) []*Stop
 	CalendarForService(serviceID string) *CalendarEntry
-	CalendarDatesForService(serviceID string) []CalendarDate
+	CalendarDatesForService(serviceID string) []*CalendarDate
 
 	// --- Bulk access ---
 	AllAgencies() []Agency

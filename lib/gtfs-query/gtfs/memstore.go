@@ -28,11 +28,11 @@ type MemStore struct {
 	routesByShortName map[string][]*Route
 	tripsByRouteID    map[string][]*Trip
 	tripsByServiceID  map[string][]*Trip
-	stopTimesByTripID map[string][]StopTime
-	stopTimesByStopID map[string][]StopTime
+	stopTimesByTripID map[string][]*StopTime
+	stopTimesByStopID map[string][]*StopTime
 	childStops        map[string][]*Stop
 	calendarByService map[string]*CalendarEntry
-	calDatesByService map[string][]CalendarDate
+	calDatesByService map[string][]*CalendarDate
 	stopsByName       map[string][]*Stop
 }
 
@@ -72,13 +72,13 @@ func (m *MemStore) StopsByName(name string) []*Stop        { return m.stopsByNam
 
 // --- Relational traversals ---
 
-func (m *MemStore) StopTimesForTrip(tripID string) []StopTime       { return m.stopTimesByTripID[tripID] }
-func (m *MemStore) StopTimesAtStop(stopID string) []StopTime         { return m.stopTimesByStopID[stopID] }
+func (m *MemStore) StopTimesForTrip(tripID string) []*StopTime       { return m.stopTimesByTripID[tripID] }
+func (m *MemStore) StopTimesAtStop(stopID string) []*StopTime         { return m.stopTimesByStopID[stopID] }
 func (m *MemStore) TripsForRoute(routeID string) []*Trip             { return m.tripsByRouteID[routeID] }
 func (m *MemStore) TripsForService(serviceID string) []*Trip         { return m.tripsByServiceID[serviceID] }
 func (m *MemStore) ChildStops(parentID string) []*Stop               { return m.childStops[parentID] }
 func (m *MemStore) CalendarForService(serviceID string) *CalendarEntry { return m.calendarByService[serviceID] }
-func (m *MemStore) CalendarDatesForService(serviceID string) []CalendarDate { return m.calDatesByService[serviceID] }
+func (m *MemStore) CalendarDatesForService(serviceID string) []*CalendarDate { return m.calDatesByService[serviceID] }
 
 // --- Bulk access ---
 
@@ -128,15 +128,16 @@ func (m *MemStore) BuildIndexes() {
 		m.tripsByServiceID[t.ServiceID] = append(m.tripsByServiceID[t.ServiceID], t)
 	}
 
-	// stop_times
-	m.stopTimesByTripID = make(map[string][]StopTime, len(m.trips))
-	m.stopTimesByStopID = make(map[string][]StopTime)
-	for _, st := range m.stopTimes {
+	// stop_times — use pointers to avoid copying 653k structs twice
+	m.stopTimesByTripID = make(map[string][]*StopTime, len(m.trips))
+	m.stopTimesByStopID = make(map[string][]*StopTime)
+	for i := range m.stopTimes {
+		st := &m.stopTimes[i]
 		m.stopTimesByTripID[st.TripID] = append(m.stopTimesByTripID[st.TripID], st)
 		m.stopTimesByStopID[st.StopID] = append(m.stopTimesByStopID[st.StopID], st)
 	}
 	for tripID, sts := range m.stopTimesByTripID {
-		slices.SortFunc(sts, func(a, b StopTime) int {
+		slices.SortFunc(sts, func(a, b *StopTime) int {
 			return a.StopSequence - b.StopSequence
 		})
 		m.stopTimesByTripID[tripID] = sts
@@ -150,8 +151,9 @@ func (m *MemStore) BuildIndexes() {
 	}
 
 	// calendar_dates
-	m.calDatesByService = make(map[string][]CalendarDate)
-	for _, cd := range m.calendarDates {
+	m.calDatesByService = make(map[string][]*CalendarDate)
+	for i := range m.calendarDates {
+		cd := &m.calendarDates[i]
 		m.calDatesByService[cd.ServiceID] = append(m.calDatesByService[cd.ServiceID], cd)
 	}
 }

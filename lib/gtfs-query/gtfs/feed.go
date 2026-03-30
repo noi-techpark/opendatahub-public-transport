@@ -32,13 +32,13 @@ func (f *Feed) StopsByName(name string) []*Stop             { return f.store.Sto
 
 // --- Relational traversals ---
 
-func (f *Feed) StopTimesForTrip(tripID string) []StopTime       { return f.store.StopTimesForTrip(tripID) }
-func (f *Feed) StopTimesAtStop(stopID string) []StopTime         { return f.store.StopTimesAtStop(stopID) }
+func (f *Feed) StopTimesForTrip(tripID string) []*StopTime       { return f.store.StopTimesForTrip(tripID) }
+func (f *Feed) StopTimesAtStop(stopID string) []*StopTime         { return f.store.StopTimesAtStop(stopID) }
 func (f *Feed) TripsForRoute(routeID string) []*Trip             { return f.store.TripsForRoute(routeID) }
 func (f *Feed) TripsForService(serviceID string) []*Trip         { return f.store.TripsForService(serviceID) }
 func (f *Feed) ChildStops(parentStopID string) []*Stop           { return f.store.ChildStops(parentStopID) }
 func (f *Feed) CalendarForService(serviceID string) *CalendarEntry { return f.store.CalendarForService(serviceID) }
-func (f *Feed) CalendarDatesForService(serviceID string) []CalendarDate { return f.store.CalendarDatesForService(serviceID) }
+func (f *Feed) CalendarDatesForService(serviceID string) []*CalendarDate { return f.store.CalendarDatesForService(serviceID) }
 
 // --- Calendar queries ---
 
