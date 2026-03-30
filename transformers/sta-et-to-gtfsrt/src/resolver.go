@@ -194,7 +194,7 @@ func (r *Resolver) matchViaNeTExSJ(sjBase string, date gtfs.Date, siriDirRef str
 	}
 
 	// Score by first departure time proximity
-	best := r.GTFS.MatchTripIn(dirFiltered, func(trip *gtfs.Trip, sts []gtfs.StopTime) float64 {
+	best := r.GTFS.MatchTripIn(dirFiltered, func(trip *gtfs.Trip, sts []*gtfs.StopTime) float64 {
 		if len(sts) == 0 {
 			return 0
 		}

@@ -196,7 +196,7 @@ func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *Resolver, dateStr
 				dirFiltered = candidates
 			}
 
-			best := resolver.GTFS.MatchTripIn(dirFiltered, func(trip *gtfs.Trip, sts []gtfs.StopTime) float64 {
+			best := resolver.GTFS.MatchTripIn(dirFiltered, func(trip *gtfs.Trip, sts []*gtfs.StopTime) float64 {
 				if len(sts) == 0 {
 					return 0
 				}
