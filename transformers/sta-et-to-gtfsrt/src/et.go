@@ -119,30 +119,26 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 				ScheduleRelationship: "SCHEDULED",
 			}
 
-			// Arrival
-			if call.AimedArrivalTime != "" {
-				stu.Arrival = &gtfsrt.StopTimeEvent{}
-				if t, err := parseISO8601Time(call.AimedArrivalTime); err == nil {
-					stu.Arrival.Time = t.Unix()
-				}
-				if call.ExpectedArrivalTime != "" {
-					if t, err := parseISO8601Time(call.ExpectedArrivalTime); err == nil {
-						delay := t.Unix() - stu.Arrival.Time
-						stu.Arrival.Delay = int32(delay)
+			// Arrival — emit delay only (not absolute time) to avoid E022 when
+			// consecutive stops share the same aimed minute in the SIRI source.
+			// Consumers reconstruct absolute times from GTFS schedule + delay.
+			if call.AimedArrivalTime != "" && call.ExpectedArrivalTime != "" {
+				aimed, err1 := parseISO8601Time(call.AimedArrivalTime)
+				expected, err2 := parseISO8601Time(call.ExpectedArrivalTime)
+				if err1 == nil && err2 == nil {
+					stu.Arrival = &gtfsrt.StopTimeEvent{
+						Delay: int32(expected.Unix() - aimed.Unix()),
 					}
 				}
 			}
 
-			// Departure
-			if call.AimedDepartureTime != "" {
-				stu.Departure = &gtfsrt.StopTimeEvent{}
-				if t, err := parseISO8601Time(call.AimedDepartureTime); err == nil {
-					stu.Departure.Time = t.Unix()
-				}
-				if call.ExpectedDepartureTime != "" {
-					if t, err := parseISO8601Time(call.ExpectedDepartureTime); err == nil {
-						delay := t.Unix() - stu.Departure.Time
-						stu.Departure.Delay = int32(delay)
+			// Departure — same approach
+			if call.AimedDepartureTime != "" && call.ExpectedDepartureTime != "" {
+				aimed, err1 := parseISO8601Time(call.AimedDepartureTime)
+				expected, err2 := parseISO8601Time(call.ExpectedDepartureTime)
+				if err1 == nil && err2 == nil {
+					stu.Departure = &gtfsrt.StopTimeEvent{
+						Delay: int32(expected.Unix() - aimed.Unix()),
 					}
 				}
 			}
