@@ -8,28 +8,31 @@ feeds:
     cron: "0/30 * * * * *"
     format: "json"
     protocol: "siri-lite"
+    compress: true
     metadata:
       agency: "sta"
       feed_type: "vehicle-monitoring"
     headers:
       Accept: "application/json"
 
-  # - endpoint: "https://efa.sta.bz.it/siri-lite/estimated-timetable"
-  #   provider: "pt-feed/sta-siri-lite-estimated-timetable"
-  #   cron: "0/30 * * * * *"
-  #   format: "json"
-  #   protocol: "siri-lite"
-  #   metadata:
-  #     agency: "sta"
-  #     feed_type: "estimated-timetable"
-  #   headers:
-  #     Accept: "application/json"
+  - endpoint: "https://efa.sta.bz.it/siri-lite/estimated-timetable"
+    provider: "pt-feed/sta-siri-lite-estimated-timetable"
+    cron: "0/30 * * * * *"
+    format: "json"
+    protocol: "siri-lite"
+    compress: true
+    metadata:
+      agency: "sta"
+      feed_type: "estimated-timetable"
+    headers:
+      Accept: "application/json"
 
   - endpoint: "https://efa.sta.bz.it/siri-lite/situation-exchange"
     provider: "pt-feed/sta-siri-lite-situation-exchange"
     cron: "0/30 * * * * *"
     format: "json"
     protocol: "siri-lite"
+    compress: true
     metadata:
       agency: "sta"
       feed_type: "situation-exchange"

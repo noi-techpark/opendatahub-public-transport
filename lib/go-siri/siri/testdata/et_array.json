@@ -1,0 +1,30 @@
+{
+  "ServiceDelivery": {
+    "ResponseTimestamp": "2026-03-30T07:00:00Z",
+    "ProducerRef": "TEST",
+    "EstimatedTimetableDelivery": {
+      "ResponseTimestamp": "2026-03-30T07:00:00Z",
+      "EstimatedJourneyVersionFrame": [
+        {
+          "RecordedAtTime": "2026-03-30T07:00:00Z",
+          "EstimatedVehicleJourney": [
+            {
+              "RecordedAtTime": "2026-03-30T07:00:00Z",
+              "LineRef": "240",
+              "DirectionRef": "1",
+              "FramedVehicleJourneyRef": {"DataFrameRef": "2026-03-30", "DatedVehicleJourneyRef": "trip_1"},
+              "PublishedLineName": "240",
+              "OperatorRef": "SASA",
+              "EstimatedCalls": {
+                "EstimatedCall": [
+                  {"StopPointRef": "stop_1", "AimedArrivalTime": "2026-03-30T07:10:00Z", "ExpectedArrivalTime": "2026-03-30T07:12:00Z"},
+                  {"StopPointRef": "stop_2", "AimedArrivalTime": "2026-03-30T07:20:00Z", "ExpectedArrivalTime": "2026-03-30T07:21:00Z"}
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

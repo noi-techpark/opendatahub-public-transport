@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/noi-techpark/opendatahub-public-transport/lib/compress"
+
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/noi-techpark/opendatahub-go-sdk/ingest/dc"
 	"github.com/noi-techpark/opendatahub-go-sdk/ingest/ms"
@@ -166,14 +168,36 @@ func pollFeed(ctx context.Context, feed FeedConfig, collector *dc.Dc[dc.EmptyDat
 		return
 	}
 
+	payload := string(body)
+	metadata := feed.Metadata
+	if feed.Compress {
+		encoded, err := compress.Encode(body)
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to compress")
+			log.Error("Failed to compress payload", "provider", feed.Provider, "err", err)
+			return
+		}
+		payload = encoded
+		if metadata == nil {
+			metadata = make(map[string]string)
+		}
+		metadata[compress.MetadataKey] = compress.MetadataValue
+		log.Info("Compressed payload",
+			"provider", feed.Provider,
+			"original", len(body),
+			"compressed", len(encoded),
+		)
+	}
+
 	err = collection.Publish(ctx, &rdb.RawAny{
 		Provider:  feed.Provider,
 		Timestamp: time.Now(),
 		Rawdata: SiriPayload{
 			Format:   feed.Format,
 			Protocol: feed.Protocol,
-			Metadata: feed.Metadata,
-			Payload:  string(body),
+			Metadata: metadata,
+			Payload:  payload,
 		},
 	})
 	if err != nil {
@@ -192,3 +216,4 @@ func pollFeed(ctx context.Context, feed FeedConfig, collector *dc.Dc[dc.EmptyDat
 		"runtime_ms", time.Since(jobstart).Milliseconds(),
 	)
 }
+

@@ -1,0 +1,23 @@
+{
+  "ServiceDelivery": {
+    "ResponseTimestamp": "2026-03-30T07:14:23Z",
+    "ProducerRef": "TEST",
+    "VehicleMonitoringDelivery": {
+      "ResponseTimestamp": "2026-03-30T07:14:23Z",
+      "VehicleActivity": {
+        "RecordedAtTime": "2026-03-30T07:14:20Z",
+        "ValidUntilTime": "2026-03-31T07:14:19Z",
+        "MonitoredVehicleJourney": {
+          "LineRef": "240",
+          "DirectionRef": "2",
+          "FramedVehicleJourneyRef": {"DataFrameRef": "2026-03-30", "DatedVehicleJourneyRef": "trip_1"},
+          "PublishedLineName": "240",
+          "VehicleRef": "1001",
+          "VehicleLocation": {"Longitude": "11.35", "Latitude": "46.50"},
+          "Delay": "PT1M30S",
+          "MonitoredCall": {"StopPointRef": "stop_A", "VehicleAtStop": "false"}
+        }
+      }
+    }
+  }
+}

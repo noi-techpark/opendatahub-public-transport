@@ -9,6 +9,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+
+	"github.com/noi-techpark/opendatahub-public-transport/lib/compress"
 	"net/http"
 	"time"
 
@@ -105,7 +107,15 @@ func handleMessage(ctx context.Context, sink SinkConfig, raw *rdb.Raw[SiriPayloa
 		"provider", raw.Provider,
 	)
 
-	if err := putFile(ctx, env.FILESERVER_HOST, sink.FileserverPath, []byte(raw.Rawdata.Payload)); err != nil {
+	payload, err := extractPayload(raw.Rawdata)
+	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to extract payload")
+		log.Error("Failed to extract payload", "queue", sink.MQQueue, "err", err)
+		return err
+	}
+
+	if err := putFile(ctx, env.FILESERVER_HOST, sink.FileserverPath, payload); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "failed to save to fileserver")
 		log.Error("Failed to save to fileserver",
@@ -143,4 +153,12 @@ func putFile(ctx context.Context, host, path string, data []byte) error {
 	}
 
 	return nil
+}
+
+// extractPayload returns the raw payload bytes, decompressing if metadata indicates compression.
+func extractPayload(p SiriPayload) ([]byte, error) {
+	if compress.IsCompressed(p.Metadata) {
+		return compress.Decode(p.Payload)
+	}
+	return []byte(p.Payload), nil
 }

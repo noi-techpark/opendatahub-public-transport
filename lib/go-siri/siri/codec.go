@@ -51,3 +51,21 @@ func dumpToFile(path string, format Format, feed any) error {
 	}
 	return os.WriteFile(path, data, 0o644)
 }
+
+// unmarshalArrayOrObject handles SIRI Lite JSON polymorphism where a field
+// can be either an array [...] or a single object {...}.
+// Returns a slice of T in both cases.
+func unmarshalArrayOrObject[T any](raw json.RawMessage) ([]T, error) {
+	if len(raw) == 0 {
+		return nil, nil
+	}
+	var arr []T
+	if err := json.Unmarshal(raw, &arr); err == nil {
+		return arr, nil
+	}
+	var single T
+	if err := json.Unmarshal(raw, &single); err == nil {
+		return []T{single}, nil
+	}
+	return nil, fmt.Errorf("expected JSON array or object, got: %.40s", raw)
+}

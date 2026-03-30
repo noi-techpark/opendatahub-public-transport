@@ -2,9 +2,12 @@ module opendatahub.com/fileserver-saver
 
 go 1.25.5
 
+replace github.com/noi-techpark/opendatahub-public-transport/lib => ../../../lib
+
 require (
 	github.com/noi-techpark/opendatahub-go-sdk/ingest v1.0.8
 	github.com/noi-techpark/opendatahub-go-sdk/tel v1.0.0
+	github.com/noi-techpark/opendatahub-public-transport/lib v0.0.0-00010101000000-000000000000
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	gopkg.in/yaml.v3 v3.0.1

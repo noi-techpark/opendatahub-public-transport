@@ -17,6 +17,7 @@ type FeedConfig struct {
 	Cron     string            `yaml:"cron"`
 	Format   string            `yaml:"format"`
 	Protocol string            `yaml:"protocol"`
+	Compress bool              `yaml:"compress,omitempty"`
 	Metadata map[string]string `yaml:"metadata,omitempty"`
 	Headers  map[string]string `yaml:"headers,omitempty"`
 }

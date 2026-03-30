@@ -1,18 +1,15 @@
-module opendatahub.com/feed-fetcher
+module opendatahub.com/sta-et-to-gtfsrt
 
 go 1.25.5
 
 replace github.com/noi-techpark/opendatahub-public-transport/lib => ../../../lib
 
 require (
-	github.com/hashicorp/go-retryablehttp v0.7.8
+	github.com/jlaffaye/ftp v0.2.0
 	github.com/noi-techpark/opendatahub-go-sdk/ingest v1.0.8
 	github.com/noi-techpark/opendatahub-go-sdk/tel v1.0.0
-	github.com/noi-techpark/opendatahub-public-transport/lib v0.0.0-00010101000000-000000000000
-	github.com/robfig/cron/v3 v3.0.1
-	go.opentelemetry.io/otel v1.35.0
+	github.com/noi-techpark/opendatahub-public-transport/lib v0.0.0
 	go.opentelemetry.io/otel/trace v1.35.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -38,7 +35,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
-	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
@@ -61,6 +57,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
+	go.opentelemetry.io/otel v1.35.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploggrpc v0.11.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.35.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.35.0 // indirect
@@ -81,4 +78,5 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -25,7 +25,22 @@ type SituationExchangeDelivery struct {
 }
 
 type Situations struct {
-	PtSituationElement []PtSituationElement `json:"PtSituationElement" xml:"PtSituationElement"`
+	PtSituationElement []PtSituationElement `json:"-" xml:"PtSituationElement"`
+	RawElements        json.RawMessage      `json:"PtSituationElement" xml:"-"`
+}
+
+func (s *Situations) UnmarshalJSON(data []byte) error {
+	type Alias Situations
+	aux := &struct{ *Alias }{Alias: (*Alias)(s)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	var err error
+	s.PtSituationElement, err = unmarshalArrayOrObject[PtSituationElement](s.RawElements)
+	if err != nil {
+		return fmt.Errorf("PtSituationElement: %w", err)
+	}
+	return nil
 }
 
 type PtSituationElement struct {
@@ -50,7 +65,22 @@ type Affects struct {
 }
 
 type AffectedStopPoints struct {
-	AffectedStopPoint []AffectedStopPoint `json:"AffectedStopPoint" xml:"AffectedStopPoint"`
+	AffectedStopPoint []AffectedStopPoint `json:"-" xml:"AffectedStopPoint"`
+	RawStops          json.RawMessage     `json:"AffectedStopPoint" xml:"-"`
+}
+
+func (a *AffectedStopPoints) UnmarshalJSON(data []byte) error {
+	type Alias AffectedStopPoints
+	aux := &struct{ *Alias }{Alias: (*Alias)(a)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	var err error
+	a.AffectedStopPoint, err = unmarshalArrayOrObject[AffectedStopPoint](a.RawStops)
+	if err != nil {
+		return fmt.Errorf("AffectedStopPoint: %w", err)
+	}
+	return nil
 }
 
 type AffectedStopPoint struct {

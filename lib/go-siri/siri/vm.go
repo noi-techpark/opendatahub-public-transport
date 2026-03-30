@@ -4,7 +4,10 @@
 
 package siri
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // --- Vehicle Monitoring structs ---
 
@@ -17,8 +20,41 @@ type VMFeed struct {
 }
 
 type VehicleMonitoringDelivery struct {
-	ResponseTimestamp string            `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
-	VehicleActivity   []VehicleActivity `json:"VehicleActivity" xml:"VehicleActivity"`
+	ResponseTimestamp  string            `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
+	VehicleActivity    []VehicleActivity `json:"-" xml:"VehicleActivity"`
+	RawVehicleActivity json.RawMessage   `json:"VehicleActivity" xml:"-"`
+}
+
+// UnmarshalJSON handles VehicleActivity being either an array or a single object.
+func (d *VehicleMonitoringDelivery) UnmarshalJSON(data []byte) error {
+	type Alias VehicleMonitoringDelivery
+	aux := &struct {
+		*Alias
+	}{Alias: (*Alias)(d)}
+
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+
+	if len(d.RawVehicleActivity) == 0 {
+		return nil
+	}
+
+	// Try array first
+	var arr []VehicleActivity
+	if err := json.Unmarshal(d.RawVehicleActivity, &arr); err == nil {
+		d.VehicleActivity = arr
+		return nil
+	}
+
+	// Fall back to single object
+	var single VehicleActivity
+	if err := json.Unmarshal(d.RawVehicleActivity, &single); err == nil {
+		d.VehicleActivity = []VehicleActivity{single}
+		return nil
+	}
+
+	return fmt.Errorf("VehicleActivity: expected array or object")
 }
 
 type VehicleActivity struct {

@@ -1,0 +1,23 @@
+image:
+  repository: ghcr.io/noi-techpark/opendatahub-public-transport/tr-sta-et-to-gtfsrt
+  pullPolicy: IfNotPresent
+  tag: "0.1.0"
+
+env:
+  LOG_LEVEL: "INFO"
+  MQ_QUEUE: pt-feed.sta-siri-lite-estimated-timetable
+  MQ_EXCHANGE: routed
+  MQ_KEY: pt-feed.sta-siri-lite-estimated-timetable
+
+  FILESERVER_HOST: "http://files-nginx-internal.core.svc.cluster.local"
+  FILESERVER_PATH: "/gtfs-rt/feeds/sta/trip-updates"
+  NETEX_FTP_URL: "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__20260326.xml.zip"
+  GTFS_FTP_URL: "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
+  REFRESH_HOURS: "24"
+  RAW_DATA_BRIDGE_ENDPOINT: "http://raw-data-bridge.core.svc.cluster.local:2000"
+  TELEMETRY_TRACE_GRPC_ENDPOINT: tempo-distributor-discovery.monitoring.svc.cluster.local:4317
+
+envSecretRef:
+  - name: MQ_URI
+    secret: rabbitmq-svcbind
+    key: uri

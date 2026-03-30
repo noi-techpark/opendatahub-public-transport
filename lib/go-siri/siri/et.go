@@ -4,26 +4,59 @@
 
 package siri
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
 
 // --- Estimated Timetable structs ---
 
 type ETFeed struct {
 	ServiceDelivery struct {
-		ResponseTimestamp          string                         `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
-		ProducerRef                string                         `json:"ProducerRef" xml:"ProducerRef"`
-		EstimatedTimetableDelivery EstimatedTimetableDelivery     `json:"EstimatedTimetableDelivery" xml:"EstimatedTimetableDelivery"`
+		ResponseTimestamp          string                     `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
+		ProducerRef                string                     `json:"ProducerRef" xml:"ProducerRef"`
+		EstimatedTimetableDelivery EstimatedTimetableDelivery `json:"EstimatedTimetableDelivery" xml:"EstimatedTimetableDelivery"`
 	} `json:"ServiceDelivery" xml:"ServiceDelivery"`
 }
 
 type EstimatedTimetableDelivery struct {
-	ResponseTimestamp            string                          `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
-	EstimatedJourneyVersionFrame []EstimatedJourneyVersionFrame  `json:"EstimatedJourneyVersionFrame" xml:"EstimatedJourneyVersionFrame"`
+	ResponseTimestamp            string                         `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
+	EstimatedJourneyVersionFrame []EstimatedJourneyVersionFrame `json:"-" xml:"EstimatedJourneyVersionFrame"`
+	RawFrames                    json.RawMessage                `json:"EstimatedJourneyVersionFrame" xml:"-"`
+}
+
+func (d *EstimatedTimetableDelivery) UnmarshalJSON(data []byte) error {
+	type Alias EstimatedTimetableDelivery
+	aux := &struct{ *Alias }{Alias: (*Alias)(d)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	var err error
+	d.EstimatedJourneyVersionFrame, err = unmarshalArrayOrObject[EstimatedJourneyVersionFrame](d.RawFrames)
+	if err != nil {
+		return fmt.Errorf("EstimatedJourneyVersionFrame: %w", err)
+	}
+	return nil
 }
 
 type EstimatedJourneyVersionFrame struct {
 	RecordedAtTime          string                    `json:"RecordedAtTime" xml:"RecordedAtTime"`
-	EstimatedVehicleJourney []EstimatedVehicleJourney `json:"EstimatedVehicleJourney" xml:"EstimatedVehicleJourney"`
+	EstimatedVehicleJourney []EstimatedVehicleJourney `json:"-" xml:"EstimatedVehicleJourney"`
+	RawJourneys             json.RawMessage           `json:"EstimatedVehicleJourney" xml:"-"`
+}
+
+func (f *EstimatedJourneyVersionFrame) UnmarshalJSON(data []byte) error {
+	type Alias EstimatedJourneyVersionFrame
+	aux := &struct{ *Alias }{Alias: (*Alias)(f)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	var err error
+	f.EstimatedVehicleJourney, err = unmarshalArrayOrObject[EstimatedVehicleJourney](f.RawJourneys)
+	if err != nil {
+		return fmt.Errorf("EstimatedVehicleJourney: %w", err)
+	}
+	return nil
 }
 
 type EstimatedVehicleJourney struct {
@@ -47,7 +80,22 @@ type EstimatedVehicleJourney struct {
 }
 
 type EstimatedCalls struct {
-	EstimatedCall []EstimatedCall `json:"EstimatedCall" xml:"EstimatedCall"`
+	EstimatedCall []EstimatedCall `json:"-" xml:"EstimatedCall"`
+	RawCalls      json.RawMessage `json:"EstimatedCall" xml:"-"`
+}
+
+func (c *EstimatedCalls) UnmarshalJSON(data []byte) error {
+	type Alias EstimatedCalls
+	aux := &struct{ *Alias }{Alias: (*Alias)(c)}
+	if err := json.Unmarshal(data, aux); err != nil {
+		return err
+	}
+	var err error
+	c.EstimatedCall, err = unmarshalArrayOrObject[EstimatedCall](c.RawCalls)
+	if err != nil {
+		return fmt.Errorf("EstimatedCall: %w", err)
+	}
+	return nil
 }
 
 type EstimatedCall struct {
