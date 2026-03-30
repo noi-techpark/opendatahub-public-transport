@@ -108,14 +108,56 @@ func TestETTransformPipeline(t *testing.T) {
 		}
 	}
 
+	// E036/E037: duplicate stop_sequence or stop_id
+	dupSeq, dupStop, unsorted := 0, 0, 0
+	for _, e := range rt.Entity {
+		tu := e.TripUpdate
+		if tu == nil {
+			continue
+		}
+		seqSeen := map[int]bool{}
+		stopSeen := map[string]bool{}
+		prevSeq := -1
+		for _, stu := range tu.StopTimeUpdate {
+			if seqSeen[stu.StopSequence] {
+				dupSeq++
+				break
+			}
+			seqSeen[stu.StopSequence] = true
+			if stopSeen[stu.StopID] {
+				dupStop++
+				break
+			}
+			stopSeen[stu.StopID] = true
+			if stu.StopSequence <= prevSeq {
+				unsorted++
+				break
+			}
+			prevSeq = stu.StopSequence
+		}
+	}
+
 	t.Logf("Correctness audit (%d entities):", len(rt.Entity))
 	t.Logf("  Direction mismatches:  %d", dirMismatch)
 	t.Logf("  Trip not active:       %d", tripNotActive)
 	t.Logf("  Stops not on trip:     %d", stopNotOnTrip)
 	t.Logf("  Delays > 1 hour:       %d", timeImplausible)
+	t.Logf("  Dup stop_sequence:     %d", dupSeq)
+	t.Logf("  Dup stop_id:           %d", dupStop)
+	t.Logf("  Unsorted sequences:    %d", unsorted)
 
 	if dirMismatch > len(rt.Entity)/2 {
 		t.Errorf("too many direction mismatches: %d/%d", dirMismatch, len(rt.Entity))
+	}
+	if dupSeq > 0 {
+		t.Errorf("E036: %d entities with duplicate stop_sequence", dupSeq)
+	}
+	if dupStop > 0 {
+		// Duplicate stop_id is valid for loop routes when stop_sequence disambiguates.
+		t.Logf("  (E037 note: %d entities with duplicate stop_id — valid for loop routes with stop_sequence set)", dupStop)
+	}
+	if unsorted > 0 {
+		t.Errorf("E002: %d entities with unsorted stop_sequences", unsorted)
 	}
 
 	// Serialization

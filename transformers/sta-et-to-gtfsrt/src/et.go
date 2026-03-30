@@ -52,23 +52,31 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			ScheduleRelationship: "SCHEDULED",
 		}
 
-		// Build stop→sequence map from the GTFS trip's stop_times
+		// Match SIRI EstimatedCalls to GTFS stop_times positionally.
+		// Both are in journey order. For loop routes, the same stop appears
+		// multiple times — we use a cursor to match each SIRI call to the
+		// next unmatched GTFS stop_time with the same stop_id.
 		gtfsStopTimes := resolver.GTFS.StopTimesForTrip(tripID)
-		stopToSeq := make(map[string]int, len(gtfsStopTimes))
-		for _, st := range gtfsStopTimes {
-			stopToSeq[st.StopID] = st.StopSequence
-		}
+		matched := make([]bool, len(gtfsStopTimes))
 
-		// Build StopTimeUpdates from EstimatedCalls
 		var stopTimeUpdates []gtfsrt.StopTimeUpdate
 		for _, call := range evj.EstimatedCalls.EstimatedCall {
 			stopID := resolveETStopRef(call.StopPointRef, resolver)
 			if stopID == "" {
 				continue
 			}
-			seq, onTrip := stopToSeq[stopID]
-			if !onTrip {
-				continue // skip stops not on this GTFS trip
+
+			// Find next unmatched GTFS stop_time for this stop_id
+			seq := -1
+			for i, st := range gtfsStopTimes {
+				if !matched[i] && st.StopID == stopID {
+					seq = st.StopSequence
+					matched[i] = true
+					break
+				}
+			}
+			if seq < 0 {
+				continue // stop not on this GTFS trip
 			}
 
 			stu := gtfsrt.StopTimeUpdate{
