@@ -14,8 +14,7 @@ import (
 // --- Serialize to protobuf ---
 
 func serializeProtobuf(fm *FeedMessage) ([]byte, error) {
-	msg := toProto(fm)
-	return proto.Marshal(msg)
+	return proto.Marshal(toProto(fm))
 }
 
 func toProto(fm *FeedMessage) *pb.FeedMessage {
@@ -41,6 +40,9 @@ func toProto(fm *FeedMessage) *pb.FeedMessage {
 func entityToProto(e *FeedEntity) *pb.FeedEntity {
 	fe := &pb.FeedEntity{
 		Id: proto.String(e.ID),
+	}
+	if e.IsDeleted {
+		fe.IsDeleted = proto.Bool(true)
 	}
 	if e.Vehicle != nil {
 		fe.Vehicle = vehiclePositionToProto(e.Vehicle)
@@ -81,23 +83,44 @@ func tripDescriptorToProto(td *TripDescriptor) *pb.TripDescriptor {
 	return p
 }
 
+func vehicleDescriptorToProto(v *VehicleDescriptor) *pb.VehicleDescriptor {
+	if v == nil {
+		return nil
+	}
+	p := &pb.VehicleDescriptor{}
+	if v.ID != "" {
+		p.Id = proto.String(v.ID)
+	}
+	if v.Label != "" {
+		p.Label = proto.String(v.Label)
+	}
+	if v.LicensePlate != "" {
+		p.LicensePlate = proto.String(v.LicensePlate)
+	}
+	return p
+}
+
 func vehiclePositionToProto(vp *VehiclePosition) *pb.VehiclePosition {
 	p := &pb.VehiclePosition{}
 	p.Trip = tripDescriptorToProto(vp.Trip)
-	if vp.Vehicle != nil {
-		p.Vehicle = &pb.VehicleDescriptor{}
-		if vp.Vehicle.ID != "" {
-			p.Vehicle.Id = proto.String(vp.Vehicle.ID)
-		}
-		if vp.Vehicle.Label != "" {
-			p.Vehicle.Label = proto.String(vp.Vehicle.Label)
-		}
-	}
+	p.Vehicle = vehicleDescriptorToProto(vp.Vehicle)
 	if vp.Position != nil {
 		p.Position = &pb.Position{
 			Latitude:  proto.Float32(vp.Position.Latitude),
 			Longitude: proto.Float32(vp.Position.Longitude),
 		}
+		if vp.Position.Bearing != nil {
+			p.Position.Bearing = proto.Float32(*vp.Position.Bearing)
+		}
+		if vp.Position.Odometer != nil {
+			p.Position.Odometer = proto.Float64(*vp.Position.Odometer)
+		}
+		if vp.Position.Speed != nil {
+			p.Position.Speed = proto.Float32(*vp.Position.Speed)
+		}
+	}
+	if vp.CurrentStopSequence != nil {
+		p.CurrentStopSequence = proto.Uint32(uint32(*vp.CurrentStopSequence))
 	}
 	if vp.StopID != "" {
 		p.StopId = proto.String(vp.StopID)
@@ -112,6 +135,13 @@ func vehiclePositionToProto(vp *VehiclePosition) *pb.VehiclePosition {
 	if vp.CongestionLevel != "" {
 		cl := congestionLevelToProto(vp.CongestionLevel)
 		p.CongestionLevel = &cl
+	}
+	if vp.OccupancyStatus != "" {
+		os := occupancyStatusToProto(vp.OccupancyStatus)
+		p.OccupancyStatus = &os
+	}
+	if vp.OccupancyPercentage != nil {
+		p.OccupancyPercentage = proto.Uint32(uint32(*vp.OccupancyPercentage))
 	}
 	return p
 }
@@ -130,14 +160,23 @@ func alertToProto(a *Alert) *pb.Alert {
 	}
 	for _, ie := range a.InformedEntity {
 		es := &pb.EntitySelector{}
+		if ie.AgencyID != "" {
+			es.AgencyId = proto.String(ie.AgencyID)
+		}
 		if ie.RouteID != "" {
 			es.RouteId = proto.String(ie.RouteID)
 		}
-		if ie.StopID != "" {
-			es.StopId = proto.String(ie.StopID)
+		if ie.RouteType != nil {
+			es.RouteType = proto.Int32(int32(*ie.RouteType))
 		}
 		if ie.DirectionID != nil {
 			es.DirectionId = proto.Uint32(uint32(*ie.DirectionID))
+		}
+		if ie.Trip != nil {
+			es.Trip = tripDescriptorToProto(ie.Trip)
+		}
+		if ie.StopID != "" {
+			es.StopId = proto.String(ie.StopID)
 		}
 		p.InformedEntity = append(p.InformedEntity, es)
 	}
@@ -148,6 +187,9 @@ func alertToProto(a *Alert) *pb.Alert {
 	if a.Effect != "" {
 		e := effectToProto(a.Effect)
 		p.Effect = &e
+	}
+	if a.URL != nil {
+		p.Url = translatedStringToProto(a.URL)
 	}
 	if a.HeaderText != nil {
 		p.HeaderText = translatedStringToProto(a.HeaderText)
@@ -166,8 +208,12 @@ func tripUpdateToProto(tu *TripUpdate) *pb.TripUpdate {
 	p := &pb.TripUpdate{
 		Trip: tripDescriptorToProto(tu.Trip),
 	}
+	p.Vehicle = vehicleDescriptorToProto(tu.Vehicle)
 	if tu.Timestamp > 0 {
 		p.Timestamp = proto.Uint64(uint64(tu.Timestamp))
+	}
+	if tu.Delay != nil {
+		p.Delay = proto.Int32(*tu.Delay)
 	}
 	for _, stu := range tu.StopTimeUpdate {
 		pstu := &pb.TripUpdate_StopTimeUpdate{}
@@ -178,29 +224,38 @@ func tripUpdateToProto(tu *TripUpdate) *pb.TripUpdate {
 			pstu.StopSequence = proto.Uint32(uint32(stu.StopSequence))
 		}
 		if stu.Arrival != nil {
-			pstu.Arrival = &pb.TripUpdate_StopTimeEvent{}
-			if stu.Arrival.Delay != 0 {
-				pstu.Arrival.Delay = proto.Int32(stu.Arrival.Delay)
-			}
-			if stu.Arrival.Time > 0 {
-				pstu.Arrival.Time = proto.Int64(stu.Arrival.Time)
-			}
+			pstu.Arrival = stopTimeEventToProto(stu.Arrival)
 		}
 		if stu.Departure != nil {
-			pstu.Departure = &pb.TripUpdate_StopTimeEvent{}
-			if stu.Departure.Delay != 0 {
-				pstu.Departure.Delay = proto.Int32(stu.Departure.Delay)
-			}
-			if stu.Departure.Time > 0 {
-				pstu.Departure.Time = proto.Int64(stu.Departure.Time)
-			}
+			pstu.Departure = stopTimeEventToProto(stu.Departure)
+		}
+		if stu.ScheduleRelationship != "" {
+			sr := stuScheduleRelationshipToProto(stu.ScheduleRelationship)
+			pstu.ScheduleRelationship = &sr
 		}
 		p.StopTimeUpdate = append(p.StopTimeUpdate, pstu)
 	}
 	return p
 }
 
+func stopTimeEventToProto(e *StopTimeEvent) *pb.TripUpdate_StopTimeEvent {
+	p := &pb.TripUpdate_StopTimeEvent{}
+	if e.Delay != 0 {
+		p.Delay = proto.Int32(e.Delay)
+	}
+	if e.Time > 0 {
+		p.Time = proto.Int64(e.Time)
+	}
+	if e.Uncertainty != nil {
+		p.Uncertainty = proto.Int32(*e.Uncertainty)
+	}
+	return p
+}
+
 func translatedStringToProto(ts *TranslatedString) *pb.TranslatedString {
+	if ts == nil {
+		return nil
+	}
 	p := &pb.TranslatedString{}
 	for _, t := range ts.Translation {
 		pt := &pb.TranslatedString_Translation{
@@ -245,7 +300,10 @@ func fromProto(msg *pb.FeedMessage) *FeedMessage {
 }
 
 func entityFromProto(e *pb.FeedEntity) FeedEntity {
-	fe := FeedEntity{ID: e.GetId()}
+	fe := FeedEntity{
+		ID:        e.GetId(),
+		IsDeleted: e.GetIsDeleted(),
+	}
 	if e.Vehicle != nil {
 		fe.Vehicle = vehiclePositionFromProto(e.Vehicle)
 	}
@@ -278,29 +336,58 @@ func tripDescriptorFromProto(td *pb.TripDescriptor) *TripDescriptor {
 	return p
 }
 
+func vehicleDescriptorFromProto(v *pb.VehicleDescriptor) *VehicleDescriptor {
+	if v == nil {
+		return nil
+	}
+	return &VehicleDescriptor{
+		ID:           v.GetId(),
+		Label:        v.GetLabel(),
+		LicensePlate: v.GetLicensePlate(),
+	}
+}
+
 func vehiclePositionFromProto(vp *pb.VehiclePosition) *VehiclePosition {
 	p := &VehiclePosition{
 		StopID:    vp.GetStopId(),
 		Timestamp: int64(vp.GetTimestamp()),
 	}
 	p.Trip = tripDescriptorFromProto(vp.Trip)
-	if vp.Vehicle != nil {
-		p.Vehicle = &VehicleDescriptor{
-			ID:    vp.Vehicle.GetId(),
-			Label: vp.Vehicle.GetLabel(),
-		}
-	}
+	p.Vehicle = vehicleDescriptorFromProto(vp.Vehicle)
 	if vp.Position != nil {
 		p.Position = &Position{
 			Latitude:  vp.Position.GetLatitude(),
 			Longitude: vp.Position.GetLongitude(),
 		}
+		if vp.Position.Bearing != nil {
+			v := vp.Position.GetBearing()
+			p.Position.Bearing = &v
+		}
+		if vp.Position.Odometer != nil {
+			v := vp.Position.GetOdometer()
+			p.Position.Odometer = &v
+		}
+		if vp.Position.Speed != nil {
+			v := vp.Position.GetSpeed()
+			p.Position.Speed = &v
+		}
+	}
+	if vp.CurrentStopSequence != nil {
+		v := int(vp.GetCurrentStopSequence())
+		p.CurrentStopSequence = &v
 	}
 	if vp.CurrentStatus != nil {
 		p.CurrentStatus = vp.CurrentStatus.String()
 	}
 	if vp.CongestionLevel != nil {
 		p.CongestionLevel = vp.CongestionLevel.String()
+	}
+	if vp.OccupancyStatus != nil {
+		p.OccupancyStatus = vp.OccupancyStatus.String()
+	}
+	if vp.OccupancyPercentage != nil {
+		v := int(vp.GetOccupancyPercentage())
+		p.OccupancyPercentage = &v
 	}
 	return p
 }
@@ -315,12 +402,20 @@ func alertFromProto(a *pb.Alert) *Alert {
 	}
 	for _, ie := range a.InformedEntity {
 		es := EntitySelector{
-			RouteID: ie.GetRouteId(),
-			StopID:  ie.GetStopId(),
+			AgencyID: ie.GetAgencyId(),
+			RouteID:  ie.GetRouteId(),
+			StopID:   ie.GetStopId(),
+		}
+		if ie.RouteType != nil {
+			v := int(ie.GetRouteType())
+			es.RouteType = &v
 		}
 		if ie.DirectionId != nil {
 			v := int(ie.GetDirectionId())
 			es.DirectionID = &v
+		}
+		if ie.Trip != nil {
+			es.Trip = tripDescriptorFromProto(ie.Trip)
 		}
 		p.InformedEntity = append(p.InformedEntity, es)
 	}
@@ -329,6 +424,9 @@ func alertFromProto(a *pb.Alert) *Alert {
 	}
 	if a.Effect != nil {
 		p.Effect = a.Effect.String()
+	}
+	if a.Url != nil {
+		p.URL = translatedStringFromProto(a.Url)
 	}
 	if a.HeaderText != nil {
 		p.HeaderText = translatedStringFromProto(a.HeaderText)
@@ -345,7 +443,12 @@ func alertFromProto(a *pb.Alert) *Alert {
 func tripUpdateFromProto(tu *pb.TripUpdate) *TripUpdate {
 	p := &TripUpdate{
 		Trip:      tripDescriptorFromProto(tu.Trip),
+		Vehicle:   vehicleDescriptorFromProto(tu.Vehicle),
 		Timestamp: int64(tu.GetTimestamp()),
+	}
+	if tu.Delay != nil {
+		v := tu.GetDelay()
+		p.Delay = &v
 	}
 	for _, stu := range tu.StopTimeUpdate {
 		s := StopTimeUpdate{
@@ -353,23 +456,35 @@ func tripUpdateFromProto(tu *pb.TripUpdate) *TripUpdate {
 			StopID:       stu.GetStopId(),
 		}
 		if stu.Arrival != nil {
-			s.Arrival = &StopTimeEvent{
-				Delay: stu.Arrival.GetDelay(),
-				Time:  stu.Arrival.GetTime(),
-			}
+			s.Arrival = stopTimeEventFromProto(stu.Arrival)
 		}
 		if stu.Departure != nil {
-			s.Departure = &StopTimeEvent{
-				Delay: stu.Departure.GetDelay(),
-				Time:  stu.Departure.GetTime(),
-			}
+			s.Departure = stopTimeEventFromProto(stu.Departure)
+		}
+		if stu.ScheduleRelationship != nil {
+			s.ScheduleRelationship = stu.ScheduleRelationship.String()
 		}
 		p.StopTimeUpdate = append(p.StopTimeUpdate, s)
 	}
 	return p
 }
 
+func stopTimeEventFromProto(e *pb.TripUpdate_StopTimeEvent) *StopTimeEvent {
+	p := &StopTimeEvent{
+		Delay: e.GetDelay(),
+		Time:  e.GetTime(),
+	}
+	if e.Uncertainty != nil {
+		v := e.GetUncertainty()
+		p.Uncertainty = &v
+	}
+	return p
+}
+
 func translatedStringFromProto(ts *pb.TranslatedString) *TranslatedString {
+	if ts == nil {
+		return nil
+	}
 	p := &TranslatedString{}
 	for _, t := range ts.Translation {
 		p.Translation = append(p.Translation, Translation{
@@ -392,8 +507,29 @@ func scheduleRelationshipToProto(s string) pb.TripDescriptor_ScheduleRelationshi
 		return pb.TripDescriptor_UNSCHEDULED
 	case "CANCELED":
 		return pb.TripDescriptor_CANCELED
+	case "REPLACEMENT":
+		return pb.TripDescriptor_REPLACEMENT
+	case "DUPLICATED":
+		return pb.TripDescriptor_DUPLICATED
+	case "DELETED":
+		return pb.TripDescriptor_DELETED
 	default:
 		return pb.TripDescriptor_SCHEDULED
+	}
+}
+
+func stuScheduleRelationshipToProto(s string) pb.TripUpdate_StopTimeUpdate_ScheduleRelationship {
+	switch s {
+	case "SCHEDULED":
+		return pb.TripUpdate_StopTimeUpdate_SCHEDULED
+	case "SKIPPED":
+		return pb.TripUpdate_StopTimeUpdate_SKIPPED
+	case "NO_DATA":
+		return pb.TripUpdate_StopTimeUpdate_NO_DATA
+	case "UNSCHEDULED":
+		return pb.TripUpdate_StopTimeUpdate_UNSCHEDULED
+	default:
+		return pb.TripUpdate_StopTimeUpdate_SCHEDULED
 	}
 }
 
@@ -422,6 +558,31 @@ func congestionLevelToProto(s string) pb.VehiclePosition_CongestionLevel {
 		return pb.VehiclePosition_SEVERE_CONGESTION
 	default:
 		return pb.VehiclePosition_UNKNOWN_CONGESTION_LEVEL
+	}
+}
+
+func occupancyStatusToProto(s string) pb.VehiclePosition_OccupancyStatus {
+	switch s {
+	case "EMPTY":
+		return pb.VehiclePosition_EMPTY
+	case "MANY_SEATS_AVAILABLE":
+		return pb.VehiclePosition_MANY_SEATS_AVAILABLE
+	case "FEW_SEATS_AVAILABLE":
+		return pb.VehiclePosition_FEW_SEATS_AVAILABLE
+	case "STANDING_ROOM_ONLY":
+		return pb.VehiclePosition_STANDING_ROOM_ONLY
+	case "CRUSHED_STANDING_ROOM_ONLY":
+		return pb.VehiclePosition_CRUSHED_STANDING_ROOM_ONLY
+	case "FULL":
+		return pb.VehiclePosition_FULL
+	case "NOT_ACCEPTING_PASSENGERS":
+		return pb.VehiclePosition_NOT_ACCEPTING_PASSENGERS
+	case "NO_DATA_AVAILABLE":
+		return pb.VehiclePosition_NO_DATA_AVAILABLE
+	case "NOT_BOARDABLE":
+		return pb.VehiclePosition_NOT_BOARDABLE
+	default:
+		return pb.VehiclePosition_NO_DATA_AVAILABLE
 	}
 }
 
