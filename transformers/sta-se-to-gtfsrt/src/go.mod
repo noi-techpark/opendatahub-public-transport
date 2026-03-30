@@ -2,7 +2,6 @@ module opendatahub.com/sta-se-to-gtfsrt
 
 go 1.25.5
 
-replace github.com/noi-techpark/opendatahub-public-transport/lib => ../../../lib
 
 require (
 	github.com/jlaffaye/ftp v0.2.0

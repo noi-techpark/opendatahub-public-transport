@@ -11,6 +11,7 @@ on:
       - "!transformers/fileserver-saver/infrastructure/helm/*"
       - "transformers/fileserver-saver/infrastructure/helm/values.yaml"
       - "transformers/fileserver-saver/infrastructure/sink_config/sta-siri-lite.yaml"
+      - "lib/**"
       - ".github/workflows/tr-fileserver-saver-sta-siri-lite.yml"
 
 env:

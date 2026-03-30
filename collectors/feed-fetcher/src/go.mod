@@ -2,7 +2,6 @@ module opendatahub.com/feed-fetcher
 
 go 1.25.5
 
-replace github.com/noi-techpark/opendatahub-public-transport/lib => ../../../lib
 
 require (
 	github.com/hashicorp/go-retryablehttp v0.7.8
