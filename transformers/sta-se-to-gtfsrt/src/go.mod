@@ -2,12 +2,11 @@ module opendatahub.com/sta-se-to-gtfsrt
 
 go 1.25.5
 
-
 require (
 	github.com/jlaffaye/ftp v0.2.0
 	github.com/noi-techpark/opendatahub-go-sdk/ingest v1.0.8
 	github.com/noi-techpark/opendatahub-go-sdk/tel v1.0.0
-	github.com/noi-techpark/opendatahub-public-transport/lib v0.0.0
+	github.com/noi-techpark/opendatahub-public-transport/lib v0.1.0
 	go.opentelemetry.io/otel/trace v1.35.0
 )
 
