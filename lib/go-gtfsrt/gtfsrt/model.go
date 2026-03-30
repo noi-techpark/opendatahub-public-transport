@@ -15,7 +15,7 @@ type FeedMessage struct {
 
 type FeedHeader struct {
 	GtfsRealtimeVersion string `json:"gtfs_realtime_version"`
-	Incrementality      string `json:"incrementality,omitempty"` // FULL_DATASET | DIFFERENTIAL
+	Incrementality      string `json:"incrementality"` // FULL_DATASET | DIFFERENTIAL — REQUIRED per spec
 	Timestamp           int64  `json:"timestamp"`
 }
 
@@ -49,8 +49,8 @@ type StopTimeUpdate struct {
 }
 
 type StopTimeEvent struct {
-	Delay       int32 `json:"delay,omitempty"`
-	Time        int64 `json:"time,omitempty"`
+	Delay       *int32 `json:"delay,omitempty"`         // seconds; 0 = on time. nil = not provided.
+	Time        *int64 `json:"time,omitempty"`           // POSIX timestamp. nil = not provided.
 	Uncertainty *int32 `json:"uncertainty,omitempty"`
 }
 

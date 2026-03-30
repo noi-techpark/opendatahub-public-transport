@@ -32,6 +32,16 @@ func IntPtr(v int) *int {
 	return &v
 }
 
+// Int32Ptr returns a pointer to an int32 (for optional delay).
+func Int32Ptr(v int32) *int32 {
+	return &v
+}
+
+// Int64Ptr returns a pointer to an int64 (for optional time).
+func Int64Ptr(v int64) *int64 {
+	return &v
+}
+
 // --- Serialize ---
 
 // Serialize encodes the feed to bytes in the given format.

@@ -240,11 +240,13 @@ func tripUpdateToProto(tu *TripUpdate) *pb.TripUpdate {
 
 func stopTimeEventToProto(e *StopTimeEvent) *pb.TripUpdate_StopTimeEvent {
 	p := &pb.TripUpdate_StopTimeEvent{}
-	if e.Delay != 0 {
-		p.Delay = proto.Int32(e.Delay)
+	// Spec: delay is "required if time is not given", time is "required if delay is not given".
+	// We emit whichever the caller set. Both nil = caller error (E044 will fire).
+	if e.Delay != nil {
+		p.Delay = proto.Int32(*e.Delay)
 	}
-	if e.Time > 0 {
-		p.Time = proto.Int64(e.Time)
+	if e.Time != nil {
+		p.Time = proto.Int64(*e.Time)
 	}
 	if e.Uncertainty != nil {
 		p.Uncertainty = proto.Int32(*e.Uncertainty)
@@ -470,9 +472,14 @@ func tripUpdateFromProto(tu *pb.TripUpdate) *TripUpdate {
 }
 
 func stopTimeEventFromProto(e *pb.TripUpdate_StopTimeEvent) *StopTimeEvent {
-	p := &StopTimeEvent{
-		Delay: e.GetDelay(),
-		Time:  e.GetTime(),
+	p := &StopTimeEvent{}
+	if e.Delay != nil {
+		v := e.GetDelay()
+		p.Delay = &v
+	}
+	if e.Time != nil {
+		v := e.GetTime()
+		p.Time = &v
 	}
 	if e.Uncertainty != nil {
 		v := e.GetUncertainty()
