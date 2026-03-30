@@ -51,22 +51,28 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			ScheduleRelationship: "SCHEDULED",
 		}
 
-		// Build set of stops that are actually on this trip's stop sequence
-		tripStopSet := make(map[string]bool)
-		for _, st := range resolver.GTFS.StopTimesForTrip(tripID) {
-			tripStopSet[st.StopID] = true
+		// Build stop→sequence map from the GTFS trip's stop_times
+		gtfsStopTimes := resolver.GTFS.StopTimesForTrip(tripID)
+		stopToSeq := make(map[string]int, len(gtfsStopTimes))
+		for _, st := range gtfsStopTimes {
+			stopToSeq[st.StopID] = st.StopSequence
 		}
 
 		// Build StopTimeUpdates from EstimatedCalls
 		var stopTimeUpdates []gtfsrt.StopTimeUpdate
 		for _, call := range evj.EstimatedCalls.EstimatedCall {
 			stopID := resolveETStopRef(call.StopPointRef, resolver)
-			if stopID == "" || !tripStopSet[stopID] {
-				continue // skip stops not in GTFS or not on this trip
+			if stopID == "" {
+				continue
+			}
+			seq, onTrip := stopToSeq[stopID]
+			if !onTrip {
+				continue // skip stops not on this GTFS trip
 			}
 
 			stu := gtfsrt.StopTimeUpdate{
-				StopID: stopID,
+				StopID:       stopID,
+				StopSequence: seq,
 			}
 
 			// Arrival
@@ -100,17 +106,25 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			stopTimeUpdates = append(stopTimeUpdates, stu)
 		}
 
-		tu := &gtfsrt.TripUpdate{
-			Trip:           trip,
-			StopTimeUpdate: stopTimeUpdates,
+		// Skip if no stop_time_updates survived filtering (E041)
+		if len(stopTimeUpdates) == 0 {
+			continue
 		}
 
-		// Parse timestamp
+		// Parse timestamp (W001: always set it)
 		var timestamp int64
 		if t, err := parseISO8601Time(evj.RecordedAtTime); err == nil {
 			timestamp = t.Unix()
 		}
-		tu.Timestamp = timestamp
+		if timestamp == 0 {
+			timestamp = fm.Header.Timestamp
+		}
+
+		tu := &gtfsrt.TripUpdate{
+			Trip:           trip,
+			StopTimeUpdate: stopTimeUpdates,
+			Timestamp:      timestamp,
+		}
 
 		// Entity ID: use DatedVehicleJourneyRef or fallback
 		entityID := evj.FramedVehicleJourneyRef.DatedVehicleJourneyRef
