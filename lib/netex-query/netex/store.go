@@ -12,7 +12,12 @@ import (
 // All entity types from any profile (EPIP, IT-L2, etc.) are stored.
 type Store interface {
 	// Put stores an entity. The entity's Type determines the "table".
+	// Implementations may silently drop entities based on type filters.
 	Put(entity Entity)
+
+	// Accepts returns true if the store will accept entities of the given type.
+	// Loaders should check this before parsing a file to skip unnecessary I/O.
+	Accepts(entityType string) bool
 
 	// All returns all entities of a given type.
 	All(entityType string) []Entity

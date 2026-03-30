@@ -14,9 +14,9 @@ import (
 
 )
 
-// Load reads ALL NeTEx parsed CSVs from a directory into the given Store,
+// Load reads NeTEx parsed CSVs from a directory into the given Store,
 // then builds and returns an indexed NeTExFeed.
-// It loads every CSV file in the directory (not just the 4 core types).
+// Files whose entity type is not accepted by the store are skipped entirely.
 func Load(dir string, store Store) (*NeTExFeed, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -29,6 +29,10 @@ func Load(dir string, store Store) (*NeTExFeed, error) {
 		}
 
 		entityType := csvFileToEntityType(entry.Name())
+		if !store.Accepts(entityType) {
+			continue
+		}
+
 		path := filepath.Join(dir, entry.Name())
 
 		if err := loadCSVIntoStore(path, entityType, store); err != nil {
