@@ -82,6 +82,7 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 
 	// Convert using static data
 	resolver := staticData.GetResolver()
+	resolver.ResetStats()
 	rt := ConvertVM(vm, resolver)
 
 	// Set header timestamp right before serialization to minimize staleness

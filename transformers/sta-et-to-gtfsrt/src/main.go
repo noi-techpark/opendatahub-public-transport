@@ -75,6 +75,7 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 	ms.FailOnError(ctx, err, "failed to deserialize SIRI ET")
 
 	resolver := staticData.GetResolver()
+	resolver.ResetStats()
 	rt := ConvertET(et, resolver)
 
 	rt.Header.Timestamp = time.Now().Unix()

@@ -7,6 +7,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
@@ -71,8 +72,9 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			}
 
 			stu := gtfsrt.StopTimeUpdate{
-				StopID:       stopID,
-				StopSequence: seq,
+				StopID:               stopID,
+				StopSequence:         seq,
+				ScheduleRelationship: "SCHEDULED",
 			}
 
 			// Arrival
@@ -106,10 +108,15 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			stopTimeUpdates = append(stopTimeUpdates, stu)
 		}
 
-		// Skip if no stop_time_updates survived filtering (E041)
+		// Skip if no stop_time_updates survived filtering
 		if len(stopTimeUpdates) == 0 {
 			continue
 		}
+
+		// Sort by stop_sequence (E002: must be strictly sorted)
+		slices.SortFunc(stopTimeUpdates, func(a, b gtfsrt.StopTimeUpdate) int {
+			return a.StopSequence - b.StopSequence
+		})
 
 		// Parse timestamp (W001: always set it)
 		var timestamp int64

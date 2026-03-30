@@ -27,6 +27,15 @@ type Resolver struct {
 	RoutesUnresolved int
 }
 
+// ResetStats zeroes all resolution counters. Call at the start of each message.
+func (r *Resolver) ResetStats() {
+	r.TripsResolvedA = 0
+	r.TripsResolvedB = 0
+	r.TripsUnresolved = 0
+	r.RoutesResolved = 0
+	r.RoutesUnresolved = 0
+}
+
 // ResolveRouteID maps a SIRI LineRef to the first matching GTFS route_id.
 // VM LineRef = public_code (e.g., "240") → GTFS RoutesByShortName
 // SE LineRef = NeTEx ID (e.g., "it:apb:Line:222401.26a") → NeTEx public_code → GTFS
