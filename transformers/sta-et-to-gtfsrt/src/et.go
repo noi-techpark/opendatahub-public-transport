@@ -4,6 +4,40 @@
 
 package main
 
+// SIRI-Lite Estimated Timetable → GTFS-RT TripUpdates conversion.
+//
+// Mapping strategy:
+//   - Route:     SIRI LineRef → GTFS route_short_name → route_id.
+//   - Trip:      Two-phase resolution via Resolver (same as VM):
+//                  Phase A: NeTEx ServiceJourney ID from DatedVehicleJourneyRef.
+//                  Phase B: OriginAimedDepartureTime + line matching (±2min).
+//                After resolution, route_id and direction_id are overridden from
+//                the matched GTFS trip for consistency.
+//   - Stops:     SIRI uses "IT:ITH10:ScheduledStopPoint:X:Y:Z" format.
+//                Resolved to GTFS "it:22021:X:Y:Z" via case/prefix normalization.
+//                SIRI and GTFS often use different quay IDs for the same physical
+//                stop (platform mismatch) — these are different stop_ids in GTFS.
+//   - StopTimeUpdates: matched positionally — SIRI calls and GTFS stop_times are
+//                both in journey order. A cursor walks GTFS stop_times, matching
+//                each SIRI call to the next unmatched entry with the same stop_id.
+//                This correctly handles loop routes (same stop visited twice).
+//   - Direction: SIRI 1 → GTFS 1 (R), SIRI 2 → GTFS 0 (H).
+//
+// Drop decisions (correctness over completeness):
+//   - Entities without a resolved trip_id are dropped.
+//   - Stops not found in GTFS are dropped from StopTimeUpdates.
+//   - Stops that exist in GTFS but are not on the matched trip's stop_times
+//     are dropped (platform/quay mismatch — different stop_id at same station).
+//   - Entities where stop_time_update times decrease after sorting by
+//     stop_sequence are dropped (indicates a wrong-direction trip match).
+//   - After filtering, entities with zero StopTimeUpdates are dropped.
+//
+// Known gaps:
+//   - ~57% of ET journeys can't be resolved (urban lines, missing NeTEx refs).
+//   - SIRI ET does not provide VehicleRef — W002 is unavoidable.
+//   - Loop routes produce duplicate stop_ids in output (valid per spec when
+//     disambiguated by stop_sequence).
+
 import (
 	"fmt"
 	"math"
@@ -125,6 +159,12 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 		slices.SortFunc(stopTimeUpdates, func(a, b gtfsrt.StopTimeUpdate) int {
 			return a.StopSequence - b.StopSequence
 		})
+
+		// Validate times are non-decreasing (E022).
+		// If they decrease, we matched a wrong-direction trip — drop the entity.
+		if !timesNonDecreasing(stopTimeUpdates) {
+			continue
+		}
 
 		// Parse timestamp (W001: always set it)
 		var timestamp int64
@@ -260,4 +300,24 @@ func resolveETStopRef(ref string, resolver *Resolver) string {
 
 	// Return empty if not found in GTFS (don't emit invalid IDs)
 	return ""
+}
+
+// timesNonDecreasing checks that arrival/departure times never go backwards.
+func timesNonDecreasing(stus []gtfsrt.StopTimeUpdate) bool {
+	var prevTime int64
+	for _, stu := range stus {
+		if stu.Arrival != nil && stu.Arrival.Time > 0 {
+			if prevTime > 0 && stu.Arrival.Time < prevTime {
+				return false
+			}
+			prevTime = stu.Arrival.Time
+		}
+		if stu.Departure != nil && stu.Departure.Time > 0 {
+			if prevTime > 0 && stu.Departure.Time < prevTime {
+				return false
+			}
+			prevTime = stu.Departure.Time
+		}
+	}
+	return true
 }

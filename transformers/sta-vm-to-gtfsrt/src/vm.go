@@ -4,6 +4,31 @@
 
 package main
 
+// SIRI-Lite Vehicle Monitoring → GTFS-RT VehiclePositions conversion.
+//
+// Mapping strategy:
+//   - Route:     SIRI LineRef (public code like "240") → GTFS route_short_name → route_id.
+//   - Trip:      Two-phase resolution via Resolver:
+//                  Phase A: extract NeTEx ServiceJourney ID from DatedVehicleJourneyRef,
+//                           traverse NeTEx SJ → JP → Route → Line → GTFS trips,
+//                           score by first-stop departure time proximity (±2min).
+//                  Phase B: fallback stop+time matching — compute scheduled time at
+//                           current stop (recordedTime - delay), match against GTFS
+//                           stop_times at that stop on the service date (±10min).
+//   - Stop:      strip NeTEx prefix "it:apb:ScheduledStopPoint:" → GTFS stop_id.
+//   - Direction: SIRI 1 → GTFS 1 (R/return), SIRI 2 → GTFS 0 (H/outbound).
+//                After trip resolution, direction is overridden from the matched trip.
+//
+// Drop decisions (correctness over completeness):
+//   - Entities without a resolved trip_id are dropped — can't pair with GTFS.
+//   - Stops not found in GTFS are omitted from the entity.
+//   - Duplicate VehicleRefs (trip transitions): keep only the most recent
+//     RecordedAtTime per VehicleRef.
+//
+// Known gaps:
+//   - Urban city lines (1-12) use different naming in SIRI vs GTFS → unresolved.
+//   - ~17% of vehicles can't be matched to a GTFS trip.
+
 import (
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"

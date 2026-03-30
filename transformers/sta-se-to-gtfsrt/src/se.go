@@ -4,6 +4,30 @@
 
 package main
 
+// SIRI-Lite Situation Exchange → GTFS-RT ServiceAlerts conversion.
+//
+// Mapping strategy:
+//   - Alert ID:       SIRI SituationNumber → GTFS-RT entity ID.
+//   - Active periods: SIRI ValidityPeriod (polymorphic array/object) → TimeRange.
+//   - Cause:          SIRI AlertCause → GTFS-RT Cause enum
+//                     (constructionWork→CONSTRUCTION, strike→STRIKE, etc.).
+//   - Effect:         SIRI Consequence.Condition → GTFS-RT Effect enum
+//                     (lineCancellation→NO_SERVICE, delayed→SIGNIFICANT_DELAYS, etc.).
+//   - Severity:       SIRI Consequence.Severity → GTFS-RT SeverityLevel.
+//   - Affected stops: SIRI AffectedStopPoint.StopPointRef → GTFS stop_id
+//                     (strip NeTEx prefix). Only emitted if stop exists in GTFS.
+//   - Affected lines: SIRI AffectedLine.LineRef → all matching GTFS route_ids
+//                     via route_short_name lookup. Fallback to PublishedLineName.
+//   - Header text:    SIRI ReasonName (multilingual, polymorphic) → TranslatedString.
+//
+// Drop decisions:
+//   - Affected stops not found in GTFS are silently omitted from InformedEntity.
+//   - Affected lines that can't be resolved to any GTFS route are omitted.
+//   - Alerts with no InformedEntity are still emitted (the alert itself is valid;
+//     the affected entities may just not be in our GTFS dataset).
+//
+// No trip resolution needed — SE alerts don't reference specific trips.
+
 import (
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
