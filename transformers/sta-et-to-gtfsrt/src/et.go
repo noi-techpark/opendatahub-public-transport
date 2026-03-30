@@ -21,16 +21,28 @@ package main
 //                both in journey order. A cursor walks GTFS stop_times, matching
 //                each SIRI call to the next unmatched entry with the same stop_id.
 //                This correctly handles loop routes (same stop visited twice).
+//   - Delays:    Only delay is emitted (not absolute time), computed as
+//                ExpectedTime - AimedTime from the SIRI source. Emitting absolute
+//                times would cause E022 because consecutive stops often share the
+//                same aimed minute. Delay-only lets consumers reconstruct times
+//                from GTFS static schedule + delay.
+//   - Real-time only: StopTimeUpdates are only emitted for stops where SIRI
+//                provides ExpectedTime (actual real-time monitoring data). ~44%
+//                of calls have only AimedTime (future/unmonitored stops) — these
+//                are omitted, letting consumers fall back to the static GTFS
+//                schedule via GTFS-RT propagation rules.
 //   - Direction: SIRI 1 → GTFS 1 (R), SIRI 2 → GTFS 0 (H).
 //
 // Drop decisions (correctness over completeness):
 //   - Entities without a resolved trip_id are dropped.
-//   - Stops not found in GTFS are dropped from StopTimeUpdates.
+//   - Stops not found in GTFS are dropped.
 //   - Stops that exist in GTFS but are not on the matched trip's stop_times
 //     are dropped (platform/quay mismatch — different stop_id at same station).
-//   - Entities where stop_time_update times decrease after sorting by
-//     stop_sequence are dropped (indicates a wrong-direction trip match).
-//   - After filtering, entities with zero StopTimeUpdates are dropped.
+//   - Stops without ExpectedArrivalTime AND ExpectedDepartureTime are dropped
+//     (no real-time data — consumer uses static schedule).
+//   - Entities where stop times decrease after sorting by stop_sequence are
+//     dropped (wrong-direction trip match detected).
+//   - After all filtering, entities with zero StopTimeUpdates are dropped.
 //
 // Known gaps:
 //   - ~57% of ET journeys can't be resolved (urban lines, missing NeTEx refs).
@@ -119,9 +131,14 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 				ScheduleRelationship: "SCHEDULED",
 			}
 
-			// Arrival — emit delay only (not absolute time) to avoid E022 when
-			// consecutive stops share the same aimed minute in the SIRI source.
-			// Consumers reconstruct absolute times from GTFS schedule + delay.
+			// Only emit arrival/departure when SIRI provides ExpectedTime
+			// (actual real-time data). Stops with only AimedTime have no
+			// real-time info — omitting them lets the consumer fall back to
+			// the static GTFS schedule per the GTFS-RT propagation rules.
+			//
+			// We emit delay only (not absolute time) to avoid E022: the SIRI
+			// source often has consecutive stops with identical aimed minutes,
+			// which would produce equal absolute timestamps.
 			if call.AimedArrivalTime != "" && call.ExpectedArrivalTime != "" {
 				aimed, err1 := parseISO8601Time(call.AimedArrivalTime)
 				expected, err2 := parseISO8601Time(call.ExpectedArrivalTime)
@@ -132,7 +149,6 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 				}
 			}
 
-			// Departure — same approach
 			if call.AimedDepartureTime != "" && call.ExpectedDepartureTime != "" {
 				aimed, err1 := parseISO8601Time(call.AimedDepartureTime)
 				expected, err2 := parseISO8601Time(call.ExpectedDepartureTime)
@@ -141,6 +157,12 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 						Delay: int32(expected.Unix() - aimed.Unix()),
 					}
 				}
+			}
+
+			// E043: every StopTimeUpdate must have at least arrival or departure.
+			// Skip stops where we have no real-time data at all.
+			if stu.Arrival == nil && stu.Departure == nil {
+				continue
 			}
 
 			stopTimeUpdates = append(stopTimeUpdates, stu)
