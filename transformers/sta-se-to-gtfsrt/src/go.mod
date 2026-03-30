@@ -6,7 +6,7 @@ require (
 	github.com/jlaffaye/ftp v0.2.0
 	github.com/noi-techpark/opendatahub-go-sdk/ingest v1.0.8
 	github.com/noi-techpark/opendatahub-go-sdk/tel v1.0.0
-	github.com/noi-techpark/opendatahub-public-transport/lib v0.1.1
+	github.com/noi-techpark/opendatahub-public-transport/lib v0.1.2
 	go.opentelemetry.io/otel/trace v1.35.0
 )
 

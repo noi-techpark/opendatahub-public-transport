@@ -142,8 +142,16 @@ func downloadAndParseNeTEx(ftpURL string) (*netexq.NeTExFeed, error) {
 	}
 	defer os.Remove(xmlPath)
 
-	// Parse NeTEx XML into store
-	store := netexq.NewMemStore()
+	// Parse NeTEx XML into store — only load entity types needed for querying.
+	// This saves ~800MB by skipping TimetabledPassingTime (695k),
+	// StopPointInJourneyPattern (160k), and PointOnRoute (149k).
+	store := netexq.NewMemStore().OnlyTypes(
+		"ServiceJourney",
+		"ServiceJourneyPattern",
+		"Route",
+		"Line",
+	)
+
 	xmlFile, err := os.Open(xmlPath)
 	if err != nil {
 		return nil, fmt.Errorf("open XML: %w", err)
