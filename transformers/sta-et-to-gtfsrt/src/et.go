@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2024 NOI Techpark <digital@noi.bz.it>
+//
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package main
 
 import (
@@ -5,9 +9,9 @@ import (
 	"math"
 	"strings"
 
-	"github.com/noi-techpark/opendatahub-public-transport/lib/gtfs-query/gtfs"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/gtfs-query/gtfs"
 )
 
 // ConvertET converts a SIRI ET feed to a GTFS-RT TripUpdates feed.
@@ -194,8 +198,10 @@ func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *Resolver, dateStr
 
 // resolveETStopRef converts an ET StopPointRef to a GTFS stop_id.
 // ET uses formats like:
-//   "IT:ITH10:ScheduledStopPoint:1140:0:8843" → "it:22021:1140:0:8843"
-//   "IT:22021:3511:0:4" → "it:22021:3511:0:4"
+//
+//	"IT:ITH10:ScheduledStopPoint:1140:0:8843" → "it:22021:1140:0:8843"
+//	"IT:22021:3511:0:4" → "it:22021:3511:0:4"
+//
 // GTFS uses lowercase "it:22021:..."
 func resolveETStopRef(ref string, resolver *Resolver) string {
 	// Try direct match

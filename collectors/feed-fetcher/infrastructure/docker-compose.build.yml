@@ -6,6 +6,6 @@ services:
   app:
     image: ${DOCKER_IMAGE}:${DOCKER_TAG}
     build:
-      context: ../
-      dockerfile: infrastructure/docker/Dockerfile
+      context: ../../../
+      dockerfile: collectors/feed-fetcher/infrastructure/docker/Dockerfile
       target: build
