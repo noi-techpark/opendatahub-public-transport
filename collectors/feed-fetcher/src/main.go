@@ -168,6 +168,14 @@ func pollFeed(ctx context.Context, feed FeedConfig, collector *dc.Dc[dc.EmptyDat
 		return
 	}
 
+	if len(body) == 0 {
+		log.Error("Empty response body, skipping",
+			"provider", feed.Provider,
+			"endpoint", feed.Endpoint,
+		)
+		return
+	}
+
 	payload := string(body)
 	metadata := feed.Metadata
 	if feed.Compress {
