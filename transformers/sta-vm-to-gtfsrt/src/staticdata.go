@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -98,9 +99,16 @@ func (sd *StaticData) refresh(netexURL, gtfsURL string) error {
 		"stops", len(s.AllStops()),
 	)
 
-	// Download and parse NeTEx
-	slog.Info("Downloading NeTEx...", "url", netexURL)
-	netexFeed, err := downloadAndParseNeTEx(netexURL)
+	// Resolve the latest available NeTEx file from the dated pattern, then
+	// download + parse it. Listing the directory means we always pick whatever
+	// date is currently on the server, surviving the provider's daily rotation
+	// and retention — a fixed dated URL would eventually 404 on restart.
+	resolvedURL, err := resolveLatestNeTExURL(netexURL)
+	if err != nil {
+		return fmt.Errorf("resolve NeTEx URL: %w", err)
+	}
+	slog.Info("Downloading NeTEx...", "pattern", netexURL, "url", resolvedURL)
+	netexFeed, err := downloadAndParseNeTEx(resolvedURL)
 	if err != nil {
 		return fmt.Errorf("parse NeTEx: %w", err)
 	}
@@ -204,14 +212,9 @@ func extractFirstXML(zipPath string) (string, error) {
 	return "", fmt.Errorf("no XML file found in zip")
 }
 
-// downloadFTP downloads a file from an FTP URL to a temp file.
-// Supports URLs like ftp://user:pass@host:port/path/to/file.ext
-func downloadFTP(ftpURL string) (string, error) {
-	u, err := url.Parse(ftpURL)
-	if err != nil {
-		return "", fmt.Errorf("parse URL: %w", err)
-	}
-
+// ftpConnect dials and authenticates against the FTP server in u, defaulting to
+// anonymous/guest when the URL carries no credentials.
+func ftpConnect(u *url.URL) (*ftp.ServerConn, error) {
 	host := u.Host
 	if !strings.Contains(host, ":") {
 		host += ":21"
@@ -219,9 +222,8 @@ func downloadFTP(ftpURL string) (string, error) {
 
 	conn, err := ftp.Dial(host, ftp.DialWithTimeout(30*time.Second))
 	if err != nil {
-		return "", fmt.Errorf("dial %s: %w", host, err)
+		return nil, fmt.Errorf("dial %s: %w", host, err)
 	}
-	defer conn.Quit()
 
 	user := "anonymous"
 	pass := "guest"
@@ -231,10 +233,87 @@ func downloadFTP(ftpURL string) (string, error) {
 			pass = p
 		}
 	}
-
 	if err := conn.Login(user, pass); err != nil {
-		return "", fmt.Errorf("login: %w", err)
+		conn.Quit()
+		return nil, fmt.Errorf("login: %w", err)
 	}
+	return conn, nil
+}
+
+// resolveLatestNeTExURL turns a dated NeTEx URL pattern into a concrete URL
+// pointing at the most recent file currently on the server.
+//
+// The pattern must contain the placeholder "{}" where an 8-digit yyyymmdd date
+// appears, e.g. ".../EU_profil/NX-PI_01_it_apb_LINE_apb__{}.xml.zip". The file's
+// directory is listed, entries matching the prefix/suffix around the placeholder
+// are parsed for their date, and the newest is chosen. A pattern without "{}" is
+// returned unchanged (treated as a literal URL).
+func resolveLatestNeTExURL(pattern string) (string, error) {
+	const placeholder = "{}"
+	if !strings.Contains(pattern, placeholder) {
+		return pattern, nil
+	}
+
+	before, after, _ := strings.Cut(pattern, placeholder)
+
+	u, err := url.Parse(before)
+	if err != nil {
+		return "", fmt.Errorf("parse pattern: %w", err)
+	}
+	dir := path.Dir(u.Path)
+	filePrefix := path.Base(u.Path) // e.g. "NX-PI_01_it_apb_LINE_apb__"
+	fileSuffix := after             // e.g. ".xml.zip"
+
+	conn, err := ftpConnect(u)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Quit()
+
+	entries, err := conn.List(dir)
+	if err != nil {
+		return "", fmt.Errorf("list %s: %w", dir, err)
+	}
+
+	var (
+		bestDate string
+		bestTime time.Time
+	)
+	for _, e := range entries {
+		name := path.Base(e.Name)
+		if !strings.HasPrefix(name, filePrefix) || !strings.HasSuffix(name, fileSuffix) {
+			continue
+		}
+		date := name[len(filePrefix) : len(name)-len(fileSuffix)]
+		t, err := time.Parse("20060102", date)
+		if err != nil {
+			continue // not a yyyymmdd-dated file
+		}
+		if bestDate == "" || t.After(bestTime) {
+			bestDate, bestTime = date, t
+		}
+	}
+
+	if bestDate == "" {
+		return "", fmt.Errorf("no NeTEx file matching %q found in %s", filePrefix+placeholder+fileSuffix, dir)
+	}
+
+	return before + bestDate + after, nil
+}
+
+// downloadFTP downloads a file from an FTP URL to a temp file.
+// Supports URLs like ftp://user:pass@host:port/path/to/file.ext
+func downloadFTP(ftpURL string) (string, error) {
+	u, err := url.Parse(ftpURL)
+	if err != nil {
+		return "", fmt.Errorf("parse URL: %w", err)
+	}
+
+	conn, err := ftpConnect(u)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Quit()
 
 	resp, err := conn.Retr(u.Path)
 	if err != nil {

@@ -16,14 +16,14 @@ import (
 	"github.com/noi-techpark/opendatahub-public-transport/lib/gtfs-query/gtfs"
 )
 
-// testGTFSURL and testNeTExURL defined in staticdata_test.go
+// testGTFSURL and testNeTExPattern defined in staticdata_test.go
 
 func TestETTransformPipeline(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip in short mode")
 	}
 
-	sd, err := LoadStaticData(testNeTExURL, testGTFSURL)
+	sd, err := LoadStaticData(testNeTExPattern, testGTFSURL)
 	if err != nil {
 		t.Fatalf("load static data: %v", err)
 	}

@@ -6,14 +6,15 @@ package main
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/gtfs-query/gtfs"
 )
 
 const (
-	testGTFSURL  = "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
-	testNeTExURL = "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__20260326.xml.zip"
+	testGTFSURL      = "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
+	testNeTExPattern = "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__{}.xml.zip"
 )
 
 func TestDownloadFTP(t *testing.T) {
@@ -74,7 +75,12 @@ func TestDownloadAndParseNeTEx(t *testing.T) {
 		t.Skip("skipping NeTEx parse in short mode")
 	}
 
-	feed, err := downloadAndParseNeTEx(testNeTExURL)
+	netexURL, err := resolveLatestNeTExURL(testNeTExPattern)
+	if err != nil {
+		t.Fatalf("resolve NeTEx URL: %v", err)
+	}
+
+	feed, err := downloadAndParseNeTEx(netexURL)
 	if err != nil {
 		t.Fatalf("parse NeTEx: %v", err)
 	}
@@ -100,12 +106,33 @@ func TestDownloadAndParseNeTEx(t *testing.T) {
 	}
 }
 
+func TestResolveLatestNeTExURL(t *testing.T) {
+	// A pattern without the placeholder is returned verbatim (no network).
+	literal := "ftp://host/netex/file.xml.zip"
+	if got, err := resolveLatestNeTExURL(literal); err != nil || got != literal {
+		t.Fatalf("literal URL: got (%q, %v), want (%q, nil)", got, err, literal)
+	}
+
+	if testing.Short() {
+		t.Skip("skipping live FTP listing in short mode")
+	}
+
+	resolved, err := resolveLatestNeTExURL(testNeTExPattern)
+	if err != nil {
+		t.Fatalf("resolve: %v", err)
+	}
+	t.Logf("resolved: %s", resolved)
+	if strings.Contains(resolved, "{}") {
+		t.Errorf("placeholder not substituted: %s", resolved)
+	}
+}
+
 func TestLoadStaticData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping full static data load in short mode")
 	}
 
-	sd, err := LoadStaticData(testNeTExURL, testGTFSURL)
+	sd, err := LoadStaticData(testNeTExPattern, testGTFSURL)
 	if err != nil {
 		t.Fatalf("load static data: %v", err)
 	}

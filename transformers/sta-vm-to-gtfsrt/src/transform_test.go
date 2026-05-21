@@ -21,7 +21,7 @@ func TestVMTransformPipeline(t *testing.T) {
 	}
 
 	// Load static data
-	sd, err := LoadStaticData(testNeTExURL, testGTFSURL)
+	sd, err := LoadStaticData(testNeTExPattern, testGTFSURL)
 	if err != nil {
 		t.Fatalf("load static data: %v", err)
 	}
