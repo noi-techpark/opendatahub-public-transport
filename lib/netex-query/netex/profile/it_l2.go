@@ -120,7 +120,7 @@ func (p *ITL2Profile) Tables() []netex.TableDef {
 // --- L2 Frame Parsers ---
 
 func parseGeneralFrameL2(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -150,7 +150,10 @@ func parseGeneralFrameL2(
 // --- L2 Entity Parsers (overrides) ---
 
 // parseDayTypeL2 extends EPIP DayType with ShortName, Description, PrivateCode.
-func parseDayTypeL2(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseDayTypeL2(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("DayType") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -182,7 +185,10 @@ func parseDayTypeL2(decoder *xml.Decoder, start xml.StartElement, emit netex.Ent
 }
 
 // parseOperatorL2 extends EPIP Operator with TradingName, CompanyNumber, PrivateCode, Description, PrimaryMode.
-func parseOperatorL2(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseOperatorL2(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("Operator") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -230,7 +236,10 @@ func parseOperatorL2(decoder *xml.Decoder, start xml.StartElement, emit netex.En
 }
 
 // parseVehicleTypeL2 extends EPIP VehicleType with Name, Description, PrivateCode, FuelType, EuroClass.
-func parseVehicleTypeL2(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseVehicleTypeL2(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("VehicleType") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -273,7 +282,10 @@ func parseVehicleTypeL2(decoder *xml.Decoder, start xml.StartElement, emit netex
 // --- L2 New Entity Parsers ---
 
 // parseJourneyAccounting parses a JourneyAccounting element (L2-specific entity).
-func parseJourneyAccounting(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseJourneyAccounting(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("JourneyAccounting") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -319,7 +331,10 @@ func parseJourneyAccounting(decoder *xml.Decoder, start xml.StartElement, emit n
 }
 
 // parseGroupOfOperators parses a GroupOfOperators element (L2-specific entity).
-func parseGroupOfOperators(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseGroupOfOperators(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("GroupOfOperators") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()

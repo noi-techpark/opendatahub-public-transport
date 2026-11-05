@@ -12,7 +12,7 @@ import (
 
 // FrameParserFunc parses a frame element, dispatching to entity parsers.
 type FrameParserFunc func(
-	decoder *xml.Decoder,
+	decoder *Decoder,
 	start xml.StartElement,
 	parsers map[string]EntityParserFunc,
 	emit EntityHandler,
@@ -20,7 +20,7 @@ type FrameParserFunc func(
 
 // EntityParserFunc parses a single entity element.
 type EntityParserFunc func(
-	decoder *xml.Decoder,
+	decoder *Decoder,
 	start xml.StartElement,
 	emit EntityHandler,
 ) error

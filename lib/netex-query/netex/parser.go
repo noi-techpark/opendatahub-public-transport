@@ -10,9 +10,30 @@ import (
 	"io"
 )
 
+// ParseOption configures Parse.
+type ParseOption func(*Decoder)
+
+// WithTypes restricts Parse to the entity types accepted by fn. Other entities
+// are never emitted, and subtrees holding only such entities are skipped
+// without being parsed.
+func WithTypes(accepts func(entityType string) bool) ParseOption {
+	return func(d *Decoder) { d.accepts = accepts }
+}
+
 // Parse reads a NeTEx XML from r, using the given profile to drive parsing and emitting entities.
-func Parse(r io.Reader, prof Profile, emit EntityHandler) error {
-	decoder := xml.NewDecoder(r)
+func Parse(r io.Reader, prof Profile, emit EntityHandler, opts ...ParseOption) error {
+	decoder := NewDecoder(r)
+	for _, opt := range opts {
+		opt(decoder)
+	}
+	if decoder.accepts != nil {
+		all := emit
+		emit = func(e Entity) {
+			if decoder.accepts(e.Type) {
+				all(e)
+			}
+		}
+	}
 
 	frameParsers := prof.FrameParsers()
 	entityParsers := prof.EntityParsers()
@@ -48,14 +69,16 @@ func Parse(r io.Reader, prof Profile, emit EntityHandler) error {
 			}
 		} else {
 			// Unknown frame — skip entirely
-			skipUntilEnd(decoder, frameName)
+			if err := decoder.Skip(); err != nil {
+				return fmt.Errorf("skip frame %s: %w", frameName, err)
+			}
 		}
 	}
 }
 
 // navigateToFrames positions the decoder at the <frames> element inside
 // PublicationDelivery > dataObjects > CompositeFrame.
-func navigateToFrames(decoder *xml.Decoder) error {
+func navigateToFrames(decoder *Decoder) error {
 	path := []string{"PublicationDelivery", "dataObjects", "CompositeFrame", "frames"}
 	idx := 0
 
@@ -69,29 +92,11 @@ func navigateToFrames(decoder *xml.Decoder) error {
 				idx++
 			} else {
 				// Skip elements we're not interested in at this level
-				skipUntilEnd(decoder, start.Name.Local)
+				if err := decoder.Skip(); err != nil {
+					return fmt.Errorf("skip %s: %w", start.Name.Local, err)
+				}
 			}
 		}
 	}
 	return nil
-}
-
-// skipUntilEnd skips all tokens until the EndElement matching the given local name.
-func skipUntilEnd(decoder *xml.Decoder, name string) {
-	depth := 1
-	for depth > 0 {
-		tok, err := decoder.Token()
-		if err != nil {
-			return
-		}
-		switch t := tok.(type) {
-		case xml.StartElement:
-			depth++
-		case xml.EndElement:
-			if t.Name.Local == name && depth == 1 {
-				return
-			}
-			depth--
-		}
-	}
 }

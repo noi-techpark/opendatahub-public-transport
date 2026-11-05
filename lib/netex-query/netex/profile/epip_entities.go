@@ -12,15 +12,18 @@ import (
 
 // --- ResourceFrame entities ---
 
-func parseAuthority(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseAuthority(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
 	return parseOrganisation(decoder, start, "Authority", emit)
 }
 
-func parseOperator(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseOperator(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
 	return parseOrganisation(decoder, start, "Operator", emit)
 }
 
-func parseOrganisation(decoder *xml.Decoder, start xml.StartElement, entityType string, emit netex.EntityHandler) error {
+func parseOrganisation(decoder *netex.Decoder, start xml.StartElement, entityType string, emit netex.EntityHandler) error {
+	if !decoder.Wants(entityType) {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -57,7 +60,10 @@ func parseOrganisation(decoder *xml.Decoder, start xml.StartElement, entityType 
 	}
 }
 
-func parseVehicleType(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseVehicleType(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("VehicleType") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -89,7 +95,10 @@ func parseVehicleType(decoder *xml.Decoder, start xml.StartElement, emit netex.E
 
 // --- SiteFrame entities ---
 
-func parseStopPlace(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseStopPlace(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("StopPlace") && !decoder.Wants("Quay") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	parentID := fields["id"]
 
@@ -120,7 +129,11 @@ func parseStopPlace(decoder *xml.Decoder, start xml.StartElement, emit netex.Ent
 			case "StopPlaceType":
 				fields["stop_place_type"] = readText(decoder)
 			case "quays":
-				parseQuays(decoder, parentID, emit)
+				if decoder.Wants("Quay") {
+					parseQuays(decoder, parentID, emit)
+				} else {
+					skipElement(decoder)
+				}
 			case "ValidBetween":
 				parseValidBetween(decoder, fields)
 			case "keyList":
@@ -137,7 +150,7 @@ func parseStopPlace(decoder *xml.Decoder, start xml.StartElement, emit netex.Ent
 	}
 }
 
-func parseCentroid(decoder *xml.Decoder, fields map[string]string) {
+func parseCentroid(decoder *netex.Decoder, fields map[string]string) {
 	// Structure: Centroid > Location > {Longitude, Latitude}
 	for {
 		tok, err := decoder.Token()
@@ -164,7 +177,7 @@ func parseCentroid(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parseQuays(decoder *xml.Decoder, stopPlaceID string, emit netex.EntityHandler) {
+func parseQuays(decoder *netex.Decoder, stopPlaceID string, emit netex.EntityHandler) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -185,7 +198,7 @@ func parseQuays(decoder *xml.Decoder, stopPlaceID string, emit netex.EntityHandl
 	}
 }
 
-func parseQuay(decoder *xml.Decoder, start xml.StartElement, stopPlaceID string, emit netex.EntityHandler) {
+func parseQuay(decoder *netex.Decoder, start xml.StartElement, stopPlaceID string, emit netex.EntityHandler) {
 	fields := parseGenericAttrs(start)
 	fields["stop_place_id"] = stopPlaceID
 
@@ -226,7 +239,10 @@ func parseQuay(decoder *xml.Decoder, start xml.StartElement, stopPlaceID string,
 
 // --- ServiceFrame entities ---
 
-func parseScheduledStopPoint(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseScheduledStopPoint(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("ScheduledStopPoint") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -257,7 +273,7 @@ func parseScheduledStopPoint(decoder *xml.Decoder, start xml.StartElement, emit 
 	}
 }
 
-func parseLocation(decoder *xml.Decoder, fields map[string]string) {
+func parseLocation(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -281,7 +297,10 @@ func parseLocation(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parseDirection(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseDirection(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("Direction") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -305,7 +324,10 @@ func parseDirection(decoder *xml.Decoder, start xml.StartElement, emit netex.Ent
 	}
 }
 
-func parseRoute(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseRoute(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("Route") && !decoder.Wants("PointOnRoute") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	routeID := fields["id"]
 
@@ -333,7 +355,11 @@ func parseRoute(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityH
 				fields["inverse_route_ref"] = getAttr(t, "ref")
 				skipElement(decoder)
 			case "pointsInSequence":
-				parsePointsOnRoute(decoder, routeID, emit)
+				if decoder.Wants("PointOnRoute") {
+					parsePointsOnRoute(decoder, routeID, emit)
+				} else {
+					skipElement(decoder)
+				}
 			case "ValidBetween":
 				parseValidBetween(decoder, fields)
 			default:
@@ -348,7 +374,7 @@ func parseRoute(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityH
 	}
 }
 
-func parsePointsOnRoute(decoder *xml.Decoder, routeID string, emit netex.EntityHandler) {
+func parsePointsOnRoute(decoder *netex.Decoder, routeID string, emit netex.EntityHandler) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -369,7 +395,7 @@ func parsePointsOnRoute(decoder *xml.Decoder, routeID string, emit netex.EntityH
 	}
 }
 
-func parsePointOnRoute(decoder *xml.Decoder, start xml.StartElement, routeID string, emit netex.EntityHandler) {
+func parsePointOnRoute(decoder *netex.Decoder, start xml.StartElement, routeID string, emit netex.EntityHandler) {
 	fields := parseGenericAttrs(start)
 	fields["route_id"] = routeID
 
@@ -395,7 +421,10 @@ func parsePointOnRoute(decoder *xml.Decoder, start xml.StartElement, routeID str
 	}
 }
 
-func parseLine(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseLine(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("Line") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -449,7 +478,10 @@ func parseLine(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHa
 	}
 }
 
-func parseDestinationDisplay(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseDestinationDisplay(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("DestinationDisplay") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -475,7 +507,10 @@ func parseDestinationDisplay(decoder *xml.Decoder, start xml.StartElement, emit 
 	}
 }
 
-func parseServiceJourneyPattern(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseServiceJourneyPattern(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("ServiceJourneyPattern") && !decoder.Wants("StopPointInJourneyPattern") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	patternID := fields["id"]
 
@@ -493,7 +528,11 @@ func parseServiceJourneyPattern(decoder *xml.Decoder, start xml.StartElement, em
 				fields["route_ref"] = getAttr(t, "ref")
 				skipElement(decoder)
 			case "pointsInSequence":
-				parseStopPointsInJP(decoder, patternID, emit)
+				if decoder.Wants("StopPointInJourneyPattern") {
+					parseStopPointsInJP(decoder, patternID, emit)
+				} else {
+					skipElement(decoder)
+				}
 			case "ValidBetween":
 				parseValidBetween(decoder, fields)
 			default:
@@ -508,7 +547,7 @@ func parseServiceJourneyPattern(decoder *xml.Decoder, start xml.StartElement, em
 	}
 }
 
-func parseStopPointsInJP(decoder *xml.Decoder, patternID string, emit netex.EntityHandler) {
+func parseStopPointsInJP(decoder *netex.Decoder, patternID string, emit netex.EntityHandler) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -529,7 +568,7 @@ func parseStopPointsInJP(decoder *xml.Decoder, patternID string, emit netex.Enti
 	}
 }
 
-func parseStopPointInJP(decoder *xml.Decoder, start xml.StartElement, patternID string, emit netex.EntityHandler) {
+func parseStopPointInJP(decoder *netex.Decoder, start xml.StartElement, patternID string, emit netex.EntityHandler) {
 	fields := parseGenericAttrs(start)
 	fields["journey_pattern_id"] = patternID
 
@@ -565,7 +604,10 @@ func parseStopPointInJP(decoder *xml.Decoder, start xml.StartElement, patternID 
 	}
 }
 
-func parseServiceLink(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseServiceLink(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("ServiceLink") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -595,7 +637,10 @@ func parseServiceLink(decoder *xml.Decoder, start xml.StartElement, emit netex.E
 	}
 }
 
-func parseSiteConnection(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseSiteConnection(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("SiteConnection") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -627,7 +672,7 @@ func parseSiteConnection(decoder *xml.Decoder, start xml.StartElement, emit nete
 	}
 }
 
-func parseWalkTransferDuration(decoder *xml.Decoder, fields map[string]string) {
+func parseWalkTransferDuration(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -648,7 +693,7 @@ func parseWalkTransferDuration(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parseConnectionEnd(decoder *xml.Decoder, prefix string, fields map[string]string) {
+func parseConnectionEnd(decoder *netex.Decoder, prefix string, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -674,7 +719,10 @@ func parseConnectionEnd(decoder *xml.Decoder, prefix string, fields map[string]s
 	}
 }
 
-func parseNotice(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseNotice(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("Notice") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -699,7 +747,10 @@ func parseNotice(decoder *xml.Decoder, start xml.StartElement, emit netex.Entity
 	}
 }
 
-func parsePassengerStopAssignment(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parsePassengerStopAssignment(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("PassengerStopAssignment") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -732,7 +783,10 @@ func parsePassengerStopAssignment(decoder *xml.Decoder, start xml.StartElement, 
 
 // --- ServiceCalendarFrame entities ---
 
-func parseDayType(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseDayType(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("DayType") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -757,7 +811,10 @@ func parseDayType(decoder *xml.Decoder, start xml.StartElement, emit netex.Entit
 	}
 }
 
-func parseUicOperatingPeriod(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseUicOperatingPeriod(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("UicOperatingPeriod") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -785,7 +842,10 @@ func parseUicOperatingPeriod(decoder *xml.Decoder, start xml.StartElement, emit 
 	}
 }
 
-func parseDayTypeAssignment(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseDayTypeAssignment(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("DayTypeAssignment") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()
@@ -815,7 +875,10 @@ func parseDayTypeAssignment(decoder *xml.Decoder, start xml.StartElement, emit n
 
 // --- TimetableFrame entities ---
 
-func parseServiceJourney(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseServiceJourney(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("ServiceJourney") && !decoder.Wants("TimetabledPassingTime") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	journeyID := fields["id"]
 
@@ -857,7 +920,11 @@ func parseServiceJourney(decoder *xml.Decoder, start xml.StartElement, emit nete
 			case "trainNumbers":
 				parseTrainNumberRefs(decoder, fields)
 			case "passingTimes":
-				parsePassingTimes(decoder, journeyID, emit)
+				if decoder.Wants("TimetabledPassingTime") {
+					parsePassingTimes(decoder, journeyID, emit)
+				} else {
+					skipElement(decoder)
+				}
 			case "ValidBetween":
 				parseValidBetween(decoder, fields)
 			default:
@@ -872,7 +939,7 @@ func parseServiceJourney(decoder *xml.Decoder, start xml.StartElement, emit nete
 	}
 }
 
-func parseDayTypeRefs(decoder *xml.Decoder, fields map[string]string) {
+func parseDayTypeRefs(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -894,7 +961,7 @@ func parseDayTypeRefs(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parseTrainNumberRefs(decoder *xml.Decoder, fields map[string]string) {
+func parseTrainNumberRefs(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -916,7 +983,7 @@ func parseTrainNumberRefs(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parsePassingTimes(decoder *xml.Decoder, journeyID string, emit netex.EntityHandler) {
+func parsePassingTimes(decoder *netex.Decoder, journeyID string, emit netex.EntityHandler) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -937,7 +1004,7 @@ func parsePassingTimes(decoder *xml.Decoder, journeyID string, emit netex.Entity
 	}
 }
 
-func parseTimetabledPassingTime(decoder *xml.Decoder, start xml.StartElement, journeyID string, emit netex.EntityHandler) {
+func parseTimetabledPassingTime(decoder *netex.Decoder, start xml.StartElement, journeyID string, emit netex.EntityHandler) {
 	fields := parseGenericAttrs(start)
 	fields["service_journey_id"] = journeyID
 
@@ -973,7 +1040,10 @@ func parseTimetabledPassingTime(decoder *xml.Decoder, start xml.StartElement, jo
 	}
 }
 
-func parseTrainNumber(decoder *xml.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+func parseTrainNumber(decoder *netex.Decoder, start xml.StartElement, emit netex.EntityHandler) error {
+	if !decoder.Wants("TrainNumber") {
+		return decoder.Skip()
+	}
 	fields := parseGenericAttrs(start)
 	for {
 		tok, err := decoder.Token()

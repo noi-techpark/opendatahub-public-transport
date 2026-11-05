@@ -13,7 +13,7 @@ import (
 
 // parseResourceFrame handles the ResourceFrame: organisations and vehicleTypes.
 func parseResourceFrame(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -45,7 +45,7 @@ func parseResourceFrame(
 
 // parseSiteFrame handles the SiteFrame: stopPlaces (+ nested quays).
 func parseSiteFrame(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -73,7 +73,7 @@ func parseSiteFrame(
 
 // parseServiceFrame handles the ServiceFrame — the largest frame with many collection types.
 func parseServiceFrame(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -139,7 +139,7 @@ func parseServiceFrame(
 // parseServiceCalendarFrame handles ServiceCalendarFrame.
 // Structure: ServiceCalendar > {dayTypes, operatingPeriods, dayTypeAssignments}
 func parseServiceCalendarFrame(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -166,7 +166,7 @@ func parseServiceCalendarFrame(
 }
 
 func parseServiceCalendarContent(
-	decoder *xml.Decoder,
+	decoder *netex.Decoder,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {
@@ -202,7 +202,7 @@ func parseServiceCalendarContent(
 
 // parseTimetableFrame handles TimetableFrame: vehicleJourneys and trainNumbers.
 func parseTimetableFrame(
-	decoder *xml.Decoder, start xml.StartElement,
+	decoder *netex.Decoder, start xml.StartElement,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler,
 ) error {
 	for {

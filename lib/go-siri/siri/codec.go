@@ -5,6 +5,7 @@
 package siri
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -68,4 +69,80 @@ func unmarshalArrayOrObject[T any](raw json.RawMessage) ([]T, error) {
 		return []T{single}, nil
 	}
 	return nil, fmt.Errorf("expected JSON array or object, got: %.40s", raw)
+}
+
+// wrapObjects rewrites SIRI Lite JSON so that every value of a key in listKeys
+// is an array, wrapping single objects in [...]. Decoding the result into
+// plain slices is one pass of encoding/json; a custom UnmarshalJSON per level
+// instead re-scans each subtree once per nesting level, which made ET
+// decoding ~6x slower. Input without single objects is returned unchanged.
+func wrapObjects(data []byte, listKeys map[string]bool) []byte {
+	var out []byte    // nil until the first rewrite
+	copied := 0       // data[:copied] is already in out
+	var closeAt []int // object depths whose closing brace must be followed by ']'
+	depth := 0
+
+	for i := 0; i < len(data); i++ {
+		switch data[i] {
+		case '{':
+			depth++
+		case '}':
+			if n := len(closeAt); n > 0 && closeAt[n-1] == depth {
+				closeAt = closeAt[:n-1]
+				out = append(out, data[copied:i+1]...)
+				out = append(out, ']')
+				copied = i + 1
+			}
+			depth--
+		case '"':
+			end := stringEnd(data, i)
+			if end < 0 {
+				return data
+			}
+			key := data[i+1 : end]
+			i = end
+			if !listKeys[string(key)] {
+				continue
+			}
+			j := skipSpace(data, end+1)
+			if j >= len(data) || data[j] != ':' {
+				continue
+			}
+			j = skipSpace(data, j+1)
+			if j < len(data) && data[j] == '{' {
+				out = append(out, data[copied:j]...)
+				out = append(out, '[')
+				copied = j
+				closeAt = append(closeAt, depth+1)
+				i = j - 1
+			}
+		}
+	}
+	if out == nil {
+		return data
+	}
+	return append(out, data[copied:]...)
+}
+
+// stringEnd returns the index of the quote closing the string opened at start, or -1.
+func stringEnd(data []byte, start int) int {
+	for i := start + 1; i < len(data); {
+		k := bytes.IndexAny(data[i:], `"\`)
+		if k < 0 {
+			return -1
+		}
+		i += k
+		if data[i] == '"' {
+			return i
+		}
+		i += 2
+	}
+	return -1
+}
+
+func skipSpace(data []byte, i int) int {
+	for i < len(data) && (data[i] == ' ' || data[i] == '\t' || data[i] == '\n' || data[i] == '\r') {
+		i++
+	}
+	return i
 }

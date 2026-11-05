@@ -25,7 +25,7 @@ func getAttr(start xml.StartElement, name string) string {
 
 // readText reads CharData until the matching EndElement.
 // Assumes the decoder is positioned right after the StartElement.
-func readText(decoder *xml.Decoder) string {
+func readText(decoder *netex.Decoder) string {
 	var b strings.Builder
 	for {
 		tok, err := decoder.Token()
@@ -46,20 +46,8 @@ func readText(decoder *xml.Decoder) string {
 
 // skipElement skips to the matching EndElement.
 // Call after reading the StartElement.
-func skipElement(decoder *xml.Decoder) {
-	depth := 1
-	for depth > 0 {
-		tok, err := decoder.Token()
-		if err != nil {
-			return
-		}
-		switch tok.(type) {
-		case xml.StartElement:
-			depth++
-		case xml.EndElement:
-			depth--
-		}
-	}
+func skipElement(decoder *netex.Decoder) {
+	decoder.Skip()
 }
 
 // parseGenericAttrs extracts DataManagedObject base attributes from a StartElement.
@@ -91,7 +79,7 @@ func parseGenericAttrs(start xml.StartElement) map[string]string {
 }
 
 // parseValidBetween reads a ValidBetween element into fields.
-func parseValidBetween(decoder *xml.Decoder, fields map[string]string) {
+func parseValidBetween(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -116,7 +104,7 @@ func parseValidBetween(decoder *xml.Decoder, fields map[string]string) {
 }
 
 // parseKeyList reads a keyList element into fields with "key:" prefix.
-func parseKeyList(decoder *xml.Decoder, fields map[string]string) {
+func parseKeyList(decoder *netex.Decoder, fields map[string]string) {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -137,7 +125,7 @@ func parseKeyList(decoder *xml.Decoder, fields map[string]string) {
 	}
 }
 
-func parseKeyValue(decoder *xml.Decoder, fields map[string]string) {
+func parseKeyValue(decoder *netex.Decoder, fields map[string]string) {
 	var key, value string
 	for {
 		tok, err := decoder.Token()
@@ -166,7 +154,7 @@ func parseKeyValue(decoder *xml.Decoder, fields map[string]string) {
 }
 
 // readSubmode reads a TransportSubmode element (which contains a child like BusSubmode, RailSubmode, etc.)
-func readSubmode(decoder *xml.Decoder) string {
+func readSubmode(decoder *netex.Decoder) string {
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
@@ -202,7 +190,7 @@ func readSubmode(decoder *xml.Decoder) string {
 
 // parseCollection iterates children of a collection element,
 // dispatching each child to the named entity parser.
-func ParseCollection(decoder *xml.Decoder, entityType string,
+func ParseCollection(decoder *netex.Decoder, entityType string,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler) error {
 	parser, ok := parsers[entityType]
 	for {
@@ -230,7 +218,7 @@ func ParseCollection(decoder *xml.Decoder, entityType string,
 
 // parseCollectionAny dispatches each child based on its actual element name.
 // Used for heterogeneous collections (e.g., connections may contain SiteConnection, DefaultConnection).
-func ParseCollectionAny(decoder *xml.Decoder,
+func ParseCollectionAny(decoder *netex.Decoder,
 	parsers map[string]netex.EntityParserFunc, emit netex.EntityHandler) error {
 	for {
 		tok, err := decoder.Token()

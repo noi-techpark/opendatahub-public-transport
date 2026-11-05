@@ -5,8 +5,8 @@
 package siri
 
 import (
-	"encoding/json"
 	"fmt"
+	"os"
 )
 
 // --- Estimated Timetable structs ---
@@ -21,42 +21,12 @@ type ETFeed struct {
 
 type EstimatedTimetableDelivery struct {
 	ResponseTimestamp            string                         `json:"ResponseTimestamp" xml:"ResponseTimestamp"`
-	EstimatedJourneyVersionFrame []EstimatedJourneyVersionFrame `json:"-" xml:"EstimatedJourneyVersionFrame"`
-	RawFrames                    json.RawMessage                `json:"EstimatedJourneyVersionFrame" xml:"-"`
-}
-
-func (d *EstimatedTimetableDelivery) UnmarshalJSON(data []byte) error {
-	type Alias EstimatedTimetableDelivery
-	aux := &struct{ *Alias }{Alias: (*Alias)(d)}
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-	var err error
-	d.EstimatedJourneyVersionFrame, err = unmarshalArrayOrObject[EstimatedJourneyVersionFrame](d.RawFrames)
-	if err != nil {
-		return fmt.Errorf("EstimatedJourneyVersionFrame: %w", err)
-	}
-	return nil
+	EstimatedJourneyVersionFrame []EstimatedJourneyVersionFrame `json:"EstimatedJourneyVersionFrame" xml:"EstimatedJourneyVersionFrame"`
 }
 
 type EstimatedJourneyVersionFrame struct {
 	RecordedAtTime          string                    `json:"RecordedAtTime" xml:"RecordedAtTime"`
-	EstimatedVehicleJourney []EstimatedVehicleJourney `json:"-" xml:"EstimatedVehicleJourney"`
-	RawJourneys             json.RawMessage           `json:"EstimatedVehicleJourney" xml:"-"`
-}
-
-func (f *EstimatedJourneyVersionFrame) UnmarshalJSON(data []byte) error {
-	type Alias EstimatedJourneyVersionFrame
-	aux := &struct{ *Alias }{Alias: (*Alias)(f)}
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-	var err error
-	f.EstimatedVehicleJourney, err = unmarshalArrayOrObject[EstimatedVehicleJourney](f.RawJourneys)
-	if err != nil {
-		return fmt.Errorf("EstimatedVehicleJourney: %w", err)
-	}
-	return nil
+	EstimatedVehicleJourney []EstimatedVehicleJourney `json:"EstimatedVehicleJourney" xml:"EstimatedVehicleJourney"`
 }
 
 type EstimatedVehicleJourney struct {
@@ -80,22 +50,7 @@ type EstimatedVehicleJourney struct {
 }
 
 type EstimatedCalls struct {
-	EstimatedCall []EstimatedCall `json:"-" xml:"EstimatedCall"`
-	RawCalls      json.RawMessage `json:"EstimatedCall" xml:"-"`
-}
-
-func (c *EstimatedCalls) UnmarshalJSON(data []byte) error {
-	type Alias EstimatedCalls
-	aux := &struct{ *Alias }{Alias: (*Alias)(c)}
-	if err := json.Unmarshal(data, aux); err != nil {
-		return err
-	}
-	var err error
-	c.EstimatedCall, err = unmarshalArrayOrObject[EstimatedCall](c.RawCalls)
-	if err != nil {
-		return fmt.Errorf("EstimatedCall: %w", err)
-	}
-	return nil
+	EstimatedCall []EstimatedCall `json:"EstimatedCall" xml:"EstimatedCall"`
 }
 
 type EstimatedCall struct {
@@ -117,7 +72,17 @@ type EstimatedCall struct {
 
 // --- Deserialize ---
 
+// etListKeys are the ET elements SIRI Lite emits as a single object when they hold one item.
+var etListKeys = map[string]bool{
+	"EstimatedJourneyVersionFrame": true,
+	"EstimatedVehicleJourney":      true,
+	"EstimatedCall":                true,
+}
+
 func DeserializeET(data []byte, format Format) (*ETFeed, error) {
+	if format == FormatJSON {
+		data = wrapObjects(data, etListKeys)
+	}
 	var feed ETFeed
 	if err := deserialize(data, format, &feed); err != nil {
 		return nil, fmt.Errorf("deserialize ET: %w", err)
@@ -126,11 +91,11 @@ func DeserializeET(data []byte, format Format) (*ETFeed, error) {
 }
 
 func LoadET(path string, format Format) (*ETFeed, error) {
-	var feed ETFeed
-	if err := loadFromFile(path, format, &feed); err != nil {
+	data, err := os.ReadFile(path)
+	if err != nil {
 		return nil, fmt.Errorf("load ET: %w", err)
 	}
-	return &feed, nil
+	return DeserializeET(data, format)
 }
 
 // --- Serialize ---
