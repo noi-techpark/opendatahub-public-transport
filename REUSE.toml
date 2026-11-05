@@ -10,6 +10,7 @@ SPDX-PackageDownloadLocation = "https://github.com/noi-techpark/opendatahub-publ
 [[annotations]]
 path = [
     ".github/**",
+    "CLAUDE.md",
     "**/.gitignore",
     ".pre-commit-config.yaml",
     "**/*.json",
