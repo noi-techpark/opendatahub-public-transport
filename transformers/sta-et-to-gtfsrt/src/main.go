@@ -76,10 +76,14 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *s
 	log.Info("Transforming SIRI ET to GTFS-RT", "provider", raw.Provider)
 
 	payload, err := extractPayload(raw.Rawdata)
-	ms.FailOnError(ctx, err, "failed to extract payload")
+	if err != nil {
+		return skipMalformed(ctx, "extract payload", raw.Rawdata.Payload, err)
+	}
 
 	et, err := siri.DeserializeET(payload, siri.FormatJSON)
-	ms.FailOnError(ctx, err, "failed to deserialize SIRI ET")
+	if err != nil {
+		return skipMalformed(ctx, "deserialize SIRI ET", payload, err)
+	}
 
 	resolver := staticData.GetResolver()
 	resolver.ResetStats()
@@ -128,4 +132,17 @@ func extractPayload(p SiriPayload) ([]byte, error) {
 		return compress.Decode(p.Payload)
 	}
 	return []byte(p.Payload), nil
+}
+
+// skipMalformed reports a message the transformer cannot read. The returned
+// error makes the SDK nack it without requeue, so one bad payload is dropped
+// instead of crash-looping the pod on redelivery.
+func skipMalformed[T string | []byte](ctx context.Context, step string, payload T, err error) error {
+	const maxHead = 200
+	head := string(payload)
+	if len(head) > maxHead {
+		head = head[:maxHead]
+	}
+	logger.Get(ctx).Error("MALFORMED MESSAGE SKIPPED", "step", step, "err", err, "payload_head", head)
+	return fmt.Errorf("%s: %w", step, err)
 }
