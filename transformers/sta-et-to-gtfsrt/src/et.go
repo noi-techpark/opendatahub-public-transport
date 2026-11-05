@@ -59,10 +59,11 @@ import (
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/gtfs-query/gtfs"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
 )
 
 // ConvertET converts a SIRI ET feed to a GTFS-RT TripUpdates feed.
-func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
+func ConvertET(feed *siri.ETFeed, resolver *sta.Resolver) *gtfsrt.FeedMessage {
 	fm := gtfsrt.NewFeedMessage()
 
 	journeys := feed.AllEstimatedVehicleJourneys()
@@ -75,7 +76,7 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			routeID = resolver.ResolveRouteID(lineRef)
 		}
 		directionID := resolver.ResolveDirectionID(evj.DirectionRef)
-		startDate := reformatDate(evj.FramedVehicleJourneyRef.DataFrameRef)
+		startDate := sta.ReformatDate(evj.FramedVehicleJourneyRef.DataFrameRef)
 
 		// Try to resolve trip via NeTEx SJ or origin departure time
 		tripID := resolveETTrip(evj, resolver, startDate)
@@ -140,8 +141,8 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			// source often has consecutive stops with identical aimed minutes,
 			// which would produce equal absolute timestamps.
 			if call.AimedArrivalTime != "" && call.ExpectedArrivalTime != "" {
-				aimed, err1 := parseISO8601Time(call.AimedArrivalTime)
-				expected, err2 := parseISO8601Time(call.ExpectedArrivalTime)
+				aimed, err1 := sta.ParseISO8601Time(call.AimedArrivalTime)
+				expected, err2 := sta.ParseISO8601Time(call.ExpectedArrivalTime)
 				if err1 == nil && err2 == nil {
 					stu.Arrival = &gtfsrt.StopTimeEvent{
 						Delay: gtfsrt.Int32Ptr(int32(expected.Unix() - aimed.Unix())),
@@ -150,8 +151,8 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 			}
 
 			if call.AimedDepartureTime != "" && call.ExpectedDepartureTime != "" {
-				aimed, err1 := parseISO8601Time(call.AimedDepartureTime)
-				expected, err2 := parseISO8601Time(call.ExpectedDepartureTime)
+				aimed, err1 := sta.ParseISO8601Time(call.AimedDepartureTime)
+				expected, err2 := sta.ParseISO8601Time(call.ExpectedDepartureTime)
 				if err1 == nil && err2 == nil {
 					stu.Departure = &gtfsrt.StopTimeEvent{
 						Delay: gtfsrt.Int32Ptr(int32(expected.Unix() - aimed.Unix())),
@@ -186,7 +187,7 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 
 		// Parse timestamp (W001: always set it)
 		var timestamp int64
-		if t, err := parseISO8601Time(evj.RecordedAtTime); err == nil {
+		if t, err := sta.ParseISO8601Time(evj.RecordedAtTime); err == nil {
 			timestamp = t.Unix()
 		}
 		if timestamp == 0 {
@@ -215,7 +216,7 @@ func ConvertET(feed *siri.ETFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 }
 
 // resolveETTrip tries to match an ET journey to a GTFS trip.
-func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *Resolver, dateStr string) string {
+func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *sta.Resolver, dateStr string) string {
 	date := gtfs.ParseDate(dateStr)
 	if !date.IsSet() {
 		return ""
@@ -223,26 +224,26 @@ func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *Resolver, dateStr
 
 	// Try NeTEx SJ ID extraction from DatedVehicleJourneyRef
 	ref := evj.FramedVehicleJourneyRef.DatedVehicleJourneyRef
-	if sjBase := extractNeTExSJID(ref); sjBase != "" {
-		if tripID := resolver.matchViaNeTExSJ(sjBase, date, evj.DirectionRef); tripID != "" {
+	if sjBase := sta.ExtractNeTExSJID(ref); sjBase != "" {
+		if tripID := resolver.MatchViaNeTExSJ(sjBase, date, evj.DirectionRef); tripID != "" {
 			resolver.TripsResolvedA++
 			return tripID
 		}
 	}
 
 	// Try matching via OriginAimedDepartureTime + line
-	publicCode := resolver.resolveToPublicCode(evj.LineRef)
+	publicCode := resolver.ResolveToPublicCode(evj.LineRef)
 	if publicCode == "" {
 		resolver.TripsUnresolved++
 		return ""
 	}
 
 	if evj.OriginAimedDepartureTime != "" {
-		originTime, err := parseISO8601Time(evj.OriginAimedDepartureTime)
+		originTime, err := sta.ParseISO8601Time(evj.OriginAimedDepartureTime)
 		if err == nil {
 			depSeconds := originTime.Hour()*3600 + originTime.Minute()*60 + originTime.Second()
 			candidates := resolver.GTFS.FindTripsForLine(publicCode, date)
-			gtfsDir := mapDirectionRef(evj.DirectionRef)
+			gtfsDir := sta.MapDirectionRef(evj.DirectionRef)
 
 			var dirFiltered []*gtfs.Trip
 			for _, t := range candidates {
@@ -290,7 +291,7 @@ func resolveETTrip(evj siri.EstimatedVehicleJourney, resolver *Resolver, dateStr
 //	"IT:22021:3511:0:4" → "it:22021:3511:0:4"
 //
 // GTFS uses lowercase "it:22021:..."
-func resolveETStopRef(ref string, resolver *Resolver) string {
+func resolveETStopRef(ref string, resolver *sta.Resolver) string {
 	// Try direct match
 	if s := resolver.GTFS.Stop(ref); s != nil {
 		return ref

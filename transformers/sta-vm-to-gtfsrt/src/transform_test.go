@@ -11,6 +11,12 @@ import (
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
+)
+
+const (
+	testGTFSURL      = "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
+	testNeTExPattern = "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__{}.xml.zip"
 )
 
 // TestVMTransformPipeline does a full end-to-end test:
@@ -21,7 +27,7 @@ func TestVMTransformPipeline(t *testing.T) {
 	}
 
 	// Load static data
-	sd, err := LoadStaticData(testNeTExPattern, testGTFSURL)
+	sd, err := sta.LoadStaticData(testNeTExPattern, testGTFSURL)
 	if err != nil {
 		t.Fatalf("load static data: %v", err)
 	}

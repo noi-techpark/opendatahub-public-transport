@@ -29,12 +29,15 @@ package main
 // No trip resolution needed — SE alerts don't reference specific trips.
 
 import (
+	"strings"
+
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
 )
 
 // ConvertSE converts a SIRI SE feed to a GTFS-RT ServiceAlerts feed.
-func ConvertSE(feed *siri.SEFeed, resolver *Resolver) *gtfsrt.FeedMessage {
+func ConvertSE(feed *siri.SEFeed, resolver *sta.Resolver) *gtfsrt.FeedMessage {
 	fm := gtfsrt.NewFeedMessage()
 
 	situations := feed.ServiceDelivery.SituationExchangeDelivery.Situations.PtSituationElement
@@ -46,10 +49,10 @@ func ConvertSE(feed *siri.SEFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 		periods := siri.ParseValidityPeriods(sit.ValidityPeriod)
 		for _, p := range periods {
 			tr := gtfsrt.TimeRange{}
-			if t, err := parseISO8601Time(p.StartTime); err == nil {
+			if t, err := sta.ParseISO8601Time(p.StartTime); err == nil {
 				tr.Start = t.Unix()
 			}
-			if t, err := parseISO8601Time(p.EndTime); err == nil {
+			if t, err := sta.ParseISO8601Time(p.EndTime); err == nil {
 				tr.End = t.Unix()
 			}
 			alert.ActivePeriod = append(alert.ActivePeriod, tr)
@@ -117,4 +120,78 @@ func ConvertSE(feed *siri.SEFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 	}
 
 	return fm
+}
+
+// mapCause maps SIRI AlertCause to GTFS-RT Cause enum string.
+func mapCause(siriCause string) string {
+	switch siriCause {
+	case "constructionWork":
+		return "CONSTRUCTION"
+	case "maintenanceWork":
+		return "MAINTENANCE"
+	case "specialEvent":
+		return "OTHER_CAUSE"
+	case "accident":
+		return "ACCIDENT"
+	case "strike":
+		return "STRIKE"
+	case "weather":
+		return "WEATHER"
+	case "technicalProblem":
+		return "TECHNICAL_PROBLEM"
+	default:
+		return "UNKNOWN_CAUSE"
+	}
+}
+
+// mapEffect maps SIRI Consequence.Condition to GTFS-RT Effect enum string.
+func mapEffect(condition string) string {
+	switch condition {
+	case "stopCancelled":
+		return "NO_SERVICE"
+	case "lineCancellation":
+		return "NO_SERVICE"
+	case "delayed":
+		return "SIGNIFICANT_DELAYS"
+	case "diverted":
+		return "DETOUR"
+	case "reducedService":
+		return "REDUCED_SERVICE"
+	case "additionalService":
+		return "ADDITIONAL_SERVICE"
+	case "modifiedService":
+		return "MODIFIED_SERVICE"
+	default:
+		return "UNKNOWN_EFFECT"
+	}
+}
+
+// mapSeverity maps SIRI Severity to GTFS-RT SeverityLevel enum string.
+func mapSeverity(severity string) string {
+	switch severity {
+	case "severe":
+		return "SEVERE"
+	case "warning":
+		return "WARNING"
+	case "normal":
+		return "INFO"
+	default:
+		return "UNKNOWN_SEVERITY"
+	}
+}
+
+// mapLangCode maps SIRI language codes to ISO 639-1.
+func mapLangCode(lang string) string {
+	switch strings.ToUpper(lang) {
+	case "DE":
+		return "de"
+	case "IT":
+		return "it"
+	case "EN":
+		return "en"
+	case "LAD":
+		return "lld" // Ladin (ISO 639-3, but commonly used)
+	default:
+		return strings.ToLower(lang)
+	}
 }

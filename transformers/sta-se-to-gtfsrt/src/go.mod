@@ -3,10 +3,9 @@ module opendatahub.com/sta-se-to-gtfsrt
 go 1.25.5
 
 require (
-	github.com/jlaffaye/ftp v0.2.0
 	github.com/noi-techpark/opendatahub-go-sdk/ingest v1.0.8
 	github.com/noi-techpark/opendatahub-go-sdk/tel v1.0.0
-	github.com/noi-techpark/opendatahub-public-transport/lib v0.1.4
+	github.com/noi-techpark/opendatahub-public-transport/lib v0.1.5
 	go.opentelemetry.io/otel/trace v1.35.0
 )
 
@@ -34,6 +33,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
+	github.com/jlaffaye/ftp v0.2.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect

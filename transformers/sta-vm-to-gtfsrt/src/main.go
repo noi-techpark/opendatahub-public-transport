@@ -23,6 +23,7 @@ import (
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
 )
 
 var env struct {
@@ -33,6 +34,9 @@ var env struct {
 	GTFS_FTP_URL    string // ftp://anonymous:guest@ftp.sta.bz.it/gtfs/...
 	REFRESH_HOURS   int    `default:"24"`
 }
+
+// Without a timeout a hung fileserver stalls the consumer instead of failing.
+var httpClient = &http.Client{Timeout: 30 * time.Second}
 
 // SiriPayload matches what feed-fetcher publishes as rawdata.
 type SiriPayload struct {
@@ -50,11 +54,14 @@ func main() {
 	defer tel.FlushOnPanic()
 
 	// Load static data (blocks until ready)
-	staticData, err := LoadStaticData(env.NETEX_FTP_URL, env.GTFS_FTP_URL)
+	staticData, err := sta.LoadStaticData(env.NETEX_FTP_URL, env.GTFS_FTP_URL)
 	ms.FailOnError(ctx, err, "failed to load static data")
 
 	// Start background refresh
-	go staticData.StartRefreshLoop(ctx, env.REFRESH_HOURS)
+	go func() {
+		defer tel.FlushOnPanic()
+		staticData.StartRefreshLoop(ctx, env.REFRESH_HOURS)
+	}()
 
 	// Listen on single queue
 	listener := tr.NewTr[SiriPayload](ctx, env.Env)
@@ -64,7 +71,7 @@ func main() {
 	ms.FailOnError(ctx, err, "listener stopped")
 }
 
-func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *StaticData) error {
+func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *sta.StaticData) error {
 	spanName := fmt.Sprintf("%s.transform-vm", tel.GetServiceName())
 	ctx, span := tel.TraceStart(ctx, spanName, trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
@@ -99,6 +106,7 @@ func handleMessage(ctx context.Context, raw *rdb.Raw[SiriPayload], staticData *S
 	jsonData, err := rt.Serialize(gtfsrt.FormatJSON)
 	ms.FailOnError(ctx, err, "failed to serialize JSON")
 	err = putFile(ctx, env.FILESERVER_HOST, env.FILESERVER_PATH+".json", jsonData)
+	ms.FailOnError(ctx, err, "failed to PUT JSON")
 
 	log.Info("Transform completed",
 		"entities", len(rt.Entity),
@@ -116,7 +124,7 @@ func putFile(ctx context.Context, host, path string, data []byte) error {
 		return fmt.Errorf("creating request: %w", err)
 	}
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("executing request: %w", err)
 	}

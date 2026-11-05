@@ -30,8 +30,12 @@ package main
 //   - ~17% of vehicles can't be matched to a GTFS trip.
 
 import (
+	"strconv"
+	"strings"
+
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
 )
 
 // deduplicateByVehicle keeps only the most recent VehicleActivity per VehicleRef.
@@ -57,7 +61,7 @@ func deduplicateByVehicle(activities []siri.VehicleActivity) []siri.VehicleActiv
 }
 
 // ConvertVM converts a SIRI VM feed to a GTFS-RT VehiclePositions feed.
-func ConvertVM(feed *siri.VMFeed, resolver *Resolver) *gtfsrt.FeedMessage {
+func ConvertVM(feed *siri.VMFeed, resolver *sta.Resolver) *gtfsrt.FeedMessage {
 	fm := gtfsrt.NewFeedMessage()
 
 	// Deduplicate: keep only the most recent entry per VehicleRef.
@@ -89,7 +93,7 @@ func ConvertVM(feed *siri.VMFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 
 		// Parse timestamp
 		var timestamp int64
-		if t, err := parseISO8601Time(va.RecordedAtTime); err == nil {
+		if t, err := sta.ParseISO8601Time(va.RecordedAtTime); err == nil {
 			timestamp = t.Unix()
 		}
 
@@ -110,7 +114,7 @@ func ConvertVM(feed *siri.VMFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 		}
 
 		// Start date
-		startDate := reformatDate(mvj.FramedVehicleJourneyRef.DataFrameRef)
+		startDate := sta.ReformatDate(mvj.FramedVehicleJourneyRef.DataFrameRef)
 
 		// If trip was resolved, use the trip's actual route_id and direction
 		// to ensure consistency (avoids version mismatches like 86-351-26a-2 vs 26a-4)
@@ -163,4 +167,9 @@ func ConvertVM(feed *siri.VMFeed, resolver *Resolver) *gtfsrt.FeedMessage {
 	}
 
 	return fm
+}
+
+func parseFloat32(s string) float32 {
+	v, _ := strconv.ParseFloat(strings.TrimSpace(s), 32)
+	return float32(v)
 }

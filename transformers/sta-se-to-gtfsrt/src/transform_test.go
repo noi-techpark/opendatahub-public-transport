@@ -11,16 +11,20 @@ import (
 
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-gtfsrt/gtfsrt"
 	"github.com/noi-techpark/opendatahub-public-transport/lib/go-siri/siri"
+	"github.com/noi-techpark/opendatahub-public-transport/lib/sta-resolver/sta"
 )
 
-// testGTFSURL and testNeTExPattern defined in staticdata_test.go
+const (
+	testGTFSURL      = "ftp://anonymous:guest@ftp.sta.bz.it/gtfs/google_transit_shp.zip"
+	testNeTExPattern = "ftp://anonymous:guest@ftp.sta.bz.it/netex/2026/plan/EU_profil/NX-PI_01_it_apb_LINE_apb__{}.xml.zip"
+)
 
 func TestSETransformPipeline(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip in short mode")
 	}
 
-	sd, err := LoadStaticData(testNeTExPattern, testGTFSURL)
+	sd, err := sta.LoadStaticData(testNeTExPattern, testGTFSURL)
 	if err != nil {
 		t.Fatalf("load static data: %v", err)
 	}
